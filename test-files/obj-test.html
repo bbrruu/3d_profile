@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>OBJ模型測試頁面</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .control-group {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .control-group h3 {
+            margin-top: 0;
+            color: #4a90e2;
+        }
+        #viewer {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #555;
+            margin: 20px 0;
+            background: #000;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4a90e2;
+        }
+        .preset-colors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .preset-color {
+            height: 40px;
+            border: 2px solid #666;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+        }
+        .preset-color:hover {
+            border-color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐰 OBJ模型測試 - 兔子模型</h1>
+        
+        <div class="status">
+            <h3>模型狀態</h3>
+            <div id="model-status">載入中...</div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>🎯 模型選擇</h3>
+                <button onclick="loadFBX()">載入 FBX 模型</button>
+                <button onclick="loadOBJ()">載入 OBJ 模型 (兔子)</button>
+                <button onclick="clearModel()">清除模型</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 快速顏色</h3>
+                <div class="preset-colors">
+                    <div class="preset-color" style="background: #8B4513;" onclick="setColor('#8B4513')">棕色</div>
+                    <div class="preset-color" style="background: #FFF8DC;" onclick="setColor('#FFF8DC')">米色</div>
+                    <div class="preset-color" style="background: #D2691E;" onclick="setColor('#D2691E')">巧克力</div>
+                    <div class="preset-color" style="background: #CD853F;" onclick="setColor('#CD853F')">沙色</div>
+                </div>
+                <button onclick="setColor('#FFFFFF')">🤍 設為白色</button>
+                <button onclick="setColor('#8B4513')">🤎 設為棕色</button>
+            </div>
+
+            <div class="control-group">
+                <h3>⚙️ 檢視選項</h3>
+                <button onclick="toggleWireframe()">線框模式</button>
+                <button onclick="resetCamera()">重置相機</button>
+                <button onclick="showInfo()">顯示模型資訊</button>
+            </div>
+        </div>
+
+        <div id="viewer"></div>
+
+        <div class="status">
+            <h3>📊 模型資訊</h3>
+            <div id="model-info">
+                <p><strong>檔案格式:</strong> <span id="file-format">無</span></p>
+                <p><strong>網格數量:</strong> <span id="mesh-count">0</span></p>
+                <p><strong>當前顏色:</strong> <span id="current-color">#8B4513</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let model;
+        let currentFormat = '';
+        let wireframeMode = false;
+
+        function updateStatus(message) {
+            document.getElementById('model-status').textContent = message;
+            console.log(message);
+        }
+
+        function updateInfo() {
+            if (!model) return;
+            
+            let meshCount = 0;
+            model.traverse(function(child) {
+                if (child.isMesh) meshCount++;
+            });
+            
+            document.getElementById('file-format').textContent = currentFormat;
+            document.getElementById('mesh-count').textContent = meshCount;
+        }
+
+        function init() {
+            const container = document.getElementById('viewer');
+            
+            // 場景設定
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            // 相機設定
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 600, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            
+            // 渲染器設定
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, 600);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // 控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            // 光照
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 添加網格地面
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            scene.add(gridHelper);
+            
+            // 開始動畫
+            animate();
+            
+            updateStatus('3D 環境初始化完成，請選擇要載入的模型');
+        }
+
+        function clearModel() {
+            if (model) {
+                scene.remove(model);
+                model = null;
+                currentFormat = '';
+                updateStatus('模型已清除');
+                updateInfo();
+            }
+        }
+
+        function setupModel(object) {
+            // 計算邊界框和縮放
+            const box = new THREE.Box3().setFromObject(object);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            console.log('模型尺寸:', size);
+            console.log('模型中心:', center);
+            
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 3 / maxDim;
+            object.scale.setScalar(scale);
+            
+            // 重新計算縮放後的中心點
+            const scaledBox = new THREE.Box3().setFromObject(object);
+            const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+            
+            // 正確置中
+            object.position.set(
+                -scaledCenter.x,
+                -scaledCenter.y,
+                -scaledCenter.z
+            );
+            
+            scene.add(object);
+        }
+
+        function loadFBX() {
+            clearModel();
+            updateStatus('正在載入 FBX 模型...');
+            currentFormat = 'FBX';
+            
+            const loader = new THREE.FBXLoader();
+            loader.load(
+                'models/3D_sample.fbx',
+                function(object) {
+                    model = object;
+                    setupModel(model);
+                    updateStatus('✅ FBX 模型載入成功！');
+                    updateInfo();
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`FBX 載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus(`❌ FBX 載入失敗: ${error}`);
+                }
+            );
+        }
+
+        function loadOBJ() {
+            clearModel();
+            updateStatus('正在載入 OBJ 模型...');
+            currentFormat = 'OBJ';
+            
+            const loader = new THREE.OBJLoader();
+            loader.load(
+                'models/rabbit_hight-2.obj',
+                function(object) {
+                    model = object;
+                    
+                    // 為 OBJ 添加材質
+                    model.traverse(function(child) {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            
+                            // OBJ 通常沒有材質，添加預設材質
+                            child.material = new THREE.MeshLambertMaterial({
+                                color: 0x8B4513, // 棕色，適合兔子
+                                transparent: false,
+                                opacity: 1.0
+                            });
+                            
+                            console.log(`OBJ 網格: ${child.name || 'unnamed'}`);
+                        }
+                    });
+                    
+                    setupModel(model);
+                    updateStatus('✅ OBJ 兔子模型載入成功！');
+                    updateInfo();
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`OBJ 載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus(`❌ OBJ 載入失敗: ${error}`);
+                    console.error('OBJ 載入錯誤:', error);
+                }
+            );
+        }
+
+        function setColor(hexColor) {
+            if (!model) {
+                updateStatus('請先載入模型');
+                return;
+            }
+            
+            const color = new THREE.Color(hexColor);
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    if (child.material.color) {
+                        child.material.color.copy(color);
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
+            
+            document.getElementById('current-color').textContent = hexColor;
+            updateStatus(`顏色已更改為 ${hexColor}`);
+        }
+
+        function toggleWireframe() {
+            if (!model) return;
+            
+            wireframeMode = !wireframeMode;
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    child.material.wireframe = wireframeMode;
+                    child.material.needsUpdate = true;
+                }
+            });
+            
+            updateStatus(wireframeMode ? '已開啟線框模式' : '已關閉線框模式');
+        }
+
+        function resetCamera() {
+            camera.position.set(5, 5, 5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            updateStatus('相機位置已重置');
+        }
+
+        function showInfo() {
+            if (!model) {
+                alert('請先載入模型');
+                return;
+            }
+            
+            let info = `模型資訊:\n`;
+            info += `格式: ${currentFormat}\n`;
+            
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            info += `尺寸: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}\n`;
+            
+            let meshCount = 0;
+            model.traverse(function(child) {
+                if (child.isMesh) meshCount++;
+            });
+            info += `網格數量: ${meshCount}`;
+            
+            alert(info);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (controls) {
+                controls.update();
+            }
+            
+            if (model) {
+                model.rotation.y += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // 初始化
+        init();
+        
+        // 自動載入 OBJ 模型
+        setTimeout(() => {
+            loadOBJ();
+        }, 1000);
+    </script>
+</body>
+</html>

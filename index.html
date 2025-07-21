@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8"                <div class="portfolio-item">
+                    <div class="portfolio-image">
+                        <img src="images/project1.jpg" alt="建築視覺化">
+                    </div>
+                    <div class="portfolio-info">
+                        <h3>建築視覺化</h3>
+                        <p>現代住宅外觀與室內設計3D渲染</p>
+                        <button class="view-3d-btn" data-model="models/Minnan.fbx">🏢 快速預覽</button>
+                        <button class="showcase-btn" onclick="window.open('architecture-showcase.html', '_blank')" style="background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🏗️ 專業展示</button>
+                    </div>
+                </div>       <div class="portfolio-item">
+                    <div class="portfolio-image">
+                        <img src="images/placeholder.svg" alt="商品設計">
+                    </div>
+                    <div class="portfolio-info">
+                        <h3>商品設計</h3>
+                        <p>創新商品的3D建模與設計</p>
+                        <button class="view-3d-btn" data-model="models/3D_sample.fbx">🎯 快速預覽</button>
+                        <button class="showcase-btn" onclick="window.open('product-design-showcase.html', '_blank')" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🛍️ 專業展示</button>
+                    </div>
+                </div>name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D模型設計師 - 專業3D建模服務</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>3D Designer Peggy</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home">首頁</a></li>
+                <li><a href="#portfolio">作品集</a></li>
+                <li><a href="#services">服務項目</a></li>
+                <li><a href="#viewer">3D預覽器</a></li>
+                <li><a href="#contact">聯絡我們</a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主頁面 -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>專業3D模型設計師</h1>
+            <p>提供高品質的3D建模、動畫和視覺化服務</p>
+            <div class="hero-buttons">
+                <a href="#portfolio" class="btn btn-primary">查看作品</a>
+                <a href="#viewer" class="btn btn-secondary">3D預覽器</a>
+            </div>
+        </div>
+        <div class="hero-3d">
+            <div id="hero-model-container"></div>
+        </div>
+    </section>
+
+    <!-- 作品集 -->
+    <section id="portfolio" class="portfolio">
+        <div class="container">
+            <h2>作品集</h2>
+            <div class="portfolio-grid">
+                <div class="portfolio-item">
+                    <div class="portfolio-image">
+                        <img src="images/3d_sample.jpg" alt="建築視覺化">
+                    </div>
+                    <div class="portfolio-info">
+                        <h3>建築視覺化</h3>
+                        <p>現代住宅外觀與室內設計3D渲染</p>
+                        <button class="view-3d-btn" data-model="models/Minnan.fbx">🏢 快速預覽</button>
+                        <button class="showcase-btn" onclick="window.open('architecture-showcase.html', '_blank')" style="background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🏗️ 專業展示</button>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image">
+                        <img src="images/3d_sample.jpg" alt="產品設計">
+                    </div>
+                    <div class="portfolio-info">
+                        <h3>產品設計</h3>
+                        <p>創新產品的3D建模與設計</p>
+                        <button class="view-3d-btn" data-model="models/3D_sample.fbx">🎯 快速預覽</button>
+                        <button class="showcase-btn" onclick="window.open('product-design-showcase.html', '_blank')" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🎨 專業展示</button>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image">
+                        <img src="images/rabbit_part1_PIC.png" alt="角色建模">
+                    </div>
+                    <div class="portfolio-info">
+                        <h3>角色建模</h3>
+                        <p>遊戲與動畫角色3D建模 - 兔子角色</p>
+                        <button class="view-3d-btn" data-model="models/rabbit_hight-2.obj">🐰 快速預覽</button>
+                        <button class="showcase-btn" onclick="window.open('character-showcase.html', '_blank')" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🎯 專業展示</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 服務項目 -->
+    <section id="services" class="services">
+        <div class="container">
+            <h2>服務項目</h2>
+            <div class="services-grid">
+                <div class="service-item">
+                    <div class="service-icon">🏗️</div>
+                    <h3>建築視覺化</h3>
+                    <p>建築外觀、室內設計、景觀規劃的3D視覺化</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">📱</div>
+                    <h3>產品建模</h3>
+                    <p>工業設計、電子產品、日用品的3D建模</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🎮</div>
+                    <h3>遊戲資產</h3>
+                    <p>遊戲角色、道具、場景的3D建模與貼圖</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🎬</div>
+                    <h3>動畫製作</h3>
+                    <p>3D動畫、產品展示動畫、廣告視覺效果</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D預覽器 -->
+    <section id="viewer" class="viewer">
+        <div class="container">
+            <h2>3D模型預覽器</h2>
+            <div class="viewer-container">
+                <div class="viewer-controls">
+                    <div class="upload-section">
+                        <h3>上傳3D模型</h3>
+                        <input type="file" id="model-upload" accept=".glb,.gltf,.obj,.fbx" />
+                        <label for="model-upload" class="upload-btn">選擇檔案</label>
+                        <p class="file-info">支援格式：GLB, GLTF, OBJ, FBX</p>
+                    </div>
+                    <div class="control-section">
+                        <h3>預設模型</h3>
+                        <div class="preset-models">
+                            <button class="preset-btn" data-model="models/3D_sample.fbx">產品模型 (FBX)</button>
+                            <button class="preset-btn" data-model="models/rabbit_hight-2.obj">兔子模型 (OBJ)</button>
+                            <button class="preset-btn" data-model="models/sample1.glb">樣本1</button>
+                            <button class="preset-btn" data-model="models/sample2.glb">樣本2</button>
+                            <button class="preset-btn" data-model="models/sample3.glb">樣本3</button>
+                        </div>
+                        <div class="viewer-options">
+                            <label>
+                                <input type="checkbox" id="wireframe"> 線框模式
+                            </label>
+                            <label>
+                                <input type="checkbox" id="auto-rotate" checked> 自動旋轉
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="viewer-3d">
+                    <div id="model-viewer"></div>
+                    <div class="viewer-info">
+                        <p>使用滑鼠拖拽旋轉視角，滾輪縮放</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 聯絡我們 -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2>聯絡我們</h2>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <h3>聯絡資訊</h3>
+                    <div class="contact-item">
+                        <strong>📧 Email:</strong>
+                        <span>designer@3dstudio.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <strong>📞 電話:</strong>
+                        <span>+886-2-1234-5678</span>
+                    </div>
+                    <div class="contact-item">
+                        <strong>📍 地址:</strong>
+                        <span>台北市信義區信義路五段7號</span>
+                    </div>
+                    <div class="contact-item">
+                        <strong>⏰ 營業時間:</strong>
+                        <span>週一至週五 9:00-18:00</span>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <h3>專案諮詢</h3>
+                    <form id="contact-form">
+                        <div class="form-group">
+                            <input type="text" id="name" name="name" placeholder="姓名" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="Email" required>
+                        </div>
+                        <div class="form-group">
+                            <select id="service" name="service" required>
+                                <option value="">選擇服務項目</option>
+                                <option value="architecture">建築視覺化</option>
+                                <option value="product">產品建模</option>
+                                <option value="game">遊戲資產</option>
+                                <option value="animation">動畫製作</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="message" name="message" placeholder="專案描述" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">發送訊息</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 頁尾 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>3D Designer Studio</h3>
+                    <p>專業的3D建模與視覺化服務提供商</p>
+                </div>
+                <div class="footer-section">
+                    <h4>服務項目</h4>
+                    <ul>
+                        <li>建築視覺化</li>
+                        <li>產品建模</li>
+                        <li>遊戲資產</li>
+                        <li>動畫製作</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>聯絡方式</h4>
+                    <ul>
+                        <li>designer@3dstudio.com</li>
+                        <li>+886-2-1234-5678</li>
+                        <li>台北市信義區</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 3D Designer Studio. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 3D模型彈窗 -->
+    <div id="model-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-viewer"></div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

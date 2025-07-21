@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX模型測試 - 新版本</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        #viewer {
+            width: 800px;
+            height: 600px;
+            background: #ffffff;
+            border: 2px solid #ddd;
+            margin: 20px auto;
+            display: block;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .info {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>FBX模型測試頁面 - 增強版</h1>
+        <p>這個頁面使用更新的Three.js版本來測試FBX模型載入。</p>
+        <p><strong>模型文件：</strong> models/fuck.fbx</p>
+        <div class="debug" id="debug-log">調試信息將顯示在這裡...</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="loadFBXModel()">載入FBX模型</button>
+        <button onclick="resetView()">重置視角</button>
+        <button onclick="toggleWireframe()">切換線框</button>
+        <button onclick="testBasicModel()">測試基本幾何體</button>
+    </div>
+
+    <div id="viewer"></div>
+
+    <div class="info">
+        <h3>操作說明：</h3>
+        <ul>
+            <li>滑鼠左鍵拖拽：旋轉模型</li>
+            <li>滾輪：縮放</li>
+            <li>滑鼠右鍵拖拽：平移</li>
+        </ul>
+        <p id="status">狀態：準備載入</p>
+    </div>
+
+    <!-- 使用較新版本的Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        let isWireframe = false;
+
+        // 調試日誌函數
+        function debugLog(message) {
+            const debugElement = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            debugElement.scrollTop = debugElement.scrollHeight;
+            console.log(message);
+        }
+
+        // 初始化3D場景
+        function init() {
+            debugLog('開始初始化3D場景...');
+            debugLog(`Three.js版本: ${THREE.REVISION}`);
+            
+            const container = document.getElementById('viewer');
+            
+            // 場景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            debugLog('場景創建完成');
+            
+            // 相機
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            debugLog('相機設置完成');
+            
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            debugLog('渲染器創建完成');
+            
+            // 控制器
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            debugLog('控制器設置完成');
+            
+            // 燈光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            debugLog('燈光設置完成');
+            
+            // 網格地板
+            const gridHelper = new THREE.GridHelper(20, 20, 0xcccccc, 0xcccccc);
+            scene.add(gridHelper);
+            
+            // 渲染循環
+            animate();
+            
+            updateStatus('場景初始化完成');
+            debugLog('初始化完成！');
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function loadFBXModel() {
+            updateStatus('開始載入FBX模型...');
+            debugLog('創建FBXLoader...');
+            
+            const loader = new FBXLoader();
+            
+            loader.load(
+                'models/fuck.fbx',
+                function(object) {
+                    debugLog('FBX載入成功！');
+                    debugLog(`模型對象類型: ${object.type}`);
+                    
+                    // 移除之前的模型
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                        debugLog('移除舊模型');
+                    }
+                    
+                    currentModel = object;
+                    
+                    // 調整模型大小和位置
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    debugLog(`模型尺寸: x=${size.x.toFixed(2)}, y=${size.y.toFixed(2)}, z=${size.z.toFixed(2)}`);
+                    debugLog(`模型中心: x=${center.x.toFixed(2)}, y=${center.y.toFixed(2)}, z=${center.z.toFixed(2)}`);
+                    
+                    // 縮放模型以適應視窗
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    if (maxDim > 0) {
+                        const scale = 3 / maxDim;
+                        currentModel.scale.setScalar(scale);
+                        
+                        // 置中模型
+                        currentModel.position.copy(center).multiplyScalar(-scale);
+                        
+                        debugLog(`應用縮放: ${scale.toFixed(4)}`);
+                        debugLog(`新位置: x=${currentModel.position.x.toFixed(2)}, y=${currentModel.position.y.toFixed(2)}, z=${currentModel.position.z.toFixed(2)}`);
+                    }
+                    
+                    // 計算和顯示模型信息
+                    let meshCount = 0;
+                    let materialCount = 0;
+                    currentModel.traverse(function(child) {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            meshCount++;
+                            debugLog(`網格 ${meshCount}: ${child.name || 'unnamed'}, 幾何體: ${child.geometry.type}`);
+                        }
+                        if (child.material) {
+                            materialCount++;
+                        }
+                    });
+                    
+                    debugLog(`總共找到 ${meshCount} 個網格, ${materialCount} 個材質`);
+                    
+                    scene.add(currentModel);
+                    updateStatus('FBX模型載入成功！');
+                    debugLog('模型已添加到場景');
+                },
+                function(progress) {
+                    if (progress.total > 0) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        updateStatus(`載入進度: ${percent}%`);
+                        debugLog(`載入進度: ${progress.loaded}/${progress.total} (${percent}%)`);
+                    }
+                },
+                function(error) {
+                    console.error('載入FBX模型失敗:', error);
+                    debugLog(`載入失敗: ${error.message || error}`);
+                    updateStatus('載入失敗: ' + (error.message || error));
+                }
+            );
+        }
+        
+        function testBasicModel() {
+            debugLog('創建測試立方體...');
+            
+            // 移除之前的模型
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            // 創建一個簡單的立方體進行測試
+            const geometry = new THREE.BoxGeometry(2, 2, 2);
+            const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+            currentModel = new THREE.Mesh(geometry, material);
+            currentModel.position.set(0, 1, 0);
+            currentModel.castShadow = true;
+            scene.add(currentModel);
+            
+            updateStatus('測試立方體已載入');
+            debugLog('測試立方體載入成功');
+        }
+        
+        function resetView() {
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            controls.reset();
+            updateStatus('視角已重置');
+            debugLog('視角重置');
+        }
+        
+        function toggleWireframe() {
+            isWireframe = !isWireframe;
+            if (currentModel) {
+                currentModel.traverse(function(child) {
+                    if (child.isMesh) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => mat.wireframe = isWireframe);
+                        } else {
+                            child.material.wireframe = isWireframe;
+                        }
+                    }
+                });
+                updateStatus(isWireframe ? '切換到線框模式' : '切換到實體模式');
+                debugLog(isWireframe ? '線框模式開啟' : '線框模式關閉');
+            }
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '狀態：' + message;
+        }
+        
+        // 響應式調整
+        window.addEventListener('resize', function() {
+            const container = document.getElementById('viewer');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // 將函數掛載到全域，以便HTML按鈕可以調用
+        window.loadFBXModel = loadFBXModel;
+        window.resetView = resetView;
+        window.toggleWireframe = toggleWireframe;
+        window.testBasicModel = testBasicModel;
+        
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

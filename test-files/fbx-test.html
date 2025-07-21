@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX模型測試</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        #viewer {
+            width: 800px;
+            height: 600px;
+            background: #ffffff;
+            border: 2px solid #ddd;
+            margin: 20px auto;
+            display: block;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .info {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>FBX模型測試頁面</h1>
+        <p>這個頁面用來測試您的FBX模型是否能正確載入。</p>
+        <p><strong>模型文件：</strong> models/fuck.fbx</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="loadFBXModel()">載入FBX模型</button>
+        <button onclick="resetView()">重置視角</button>
+        <button onclick="toggleWireframe()">切換線框</button>
+    </div>
+
+    <div id="viewer"></div>
+
+    <div class="info">
+        <h3>操作說明：</h3>
+        <ul>
+            <li>滑鼠左鍵拖拽：旋轉模型</li>
+            <li>滾輪：縮放</li>
+            <li>滑鼠右鍵拖拽：平移</li>
+        </ul>
+        <p id="status">狀態：準備載入</p>
+    </div>
+
+    <!-- Three.js 和載入器 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/libs/inflate.min.js"></script>
+    <script src="https://threejs.org/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        let isWireframe = false;
+
+        // 初始化3D場景
+        function init() {
+            // 檢查所需的Three.js組件
+            console.log('Three.js版本:', THREE.REVISION);
+            console.log('OrbitControls可用:', typeof THREE.OrbitControls !== 'undefined');
+            console.log('FBXLoader可用:', typeof THREE.FBXLoader !== 'undefined');
+            
+            const container = document.getElementById('viewer');
+            
+            // 場景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            
+            // 相機
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // 控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // 燈光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 網格地板
+            const gridHelper = new THREE.GridHelper(20, 20, 0xcccccc, 0xcccccc);
+            scene.add(gridHelper);
+            
+            // 渲染循環
+            animate();
+            
+            updateStatus('場景初始化完成');
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function loadFBXModel() {
+            updateStatus('開始載入FBX模型...');
+            
+            // 檢查FBXLoader是否可用
+            if (typeof THREE.FBXLoader === 'undefined') {
+                updateStatus('錯誤：FBXLoader未定義，請檢查腳本載入');
+                console.error('FBXLoader is not defined');
+                return;
+            }
+            
+            const loader = new THREE.FBXLoader();
+            
+            loader.load(
+                'models/fuck.fbx',
+                function(object) {
+                    console.log('FBX載入成功:', object);
+                    
+                    // 移除之前的模型
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                    }
+                    
+                    currentModel = object;
+                    
+                    // 調整模型大小和位置
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    console.log('模型尺寸:', size);
+                    console.log('模型中心:', center);
+                    
+                    // 縮放模型以適應視窗
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    if (maxDim > 0) {
+                        const scale = 3 / maxDim;
+                        currentModel.scale.setScalar(scale);
+                        
+                        // 置中模型
+                        currentModel.position.copy(center).multiplyScalar(-scale);
+                        
+                        console.log('應用縮放:', scale);
+                        console.log('新位置:', currentModel.position);
+                    }
+                    
+                    // 啟用陰影
+                    currentModel.traverse(function(child) {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            console.log('找到網格:', child.name || 'unnamed');
+                        }
+                    });
+                    
+                    scene.add(currentModel);
+                    updateStatus('FBX模型載入成功！');
+                },
+                function(progress) {
+                    if (progress.total > 0) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        updateStatus(`載入進度: ${percent}%`);
+                        console.log('載入進度:', progress.loaded, '/', progress.total);
+                    }
+                },
+                function(error) {
+                    console.error('載入FBX模型失敗:', error);
+                    updateStatus('載入失敗: ' + (error.message || error));
+                }
+            );
+        }
+        
+        function resetView() {
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            controls.reset();
+            updateStatus('視角已重置');
+        }
+        
+        function toggleWireframe() {
+            isWireframe = !isWireframe;
+            if (currentModel) {
+                currentModel.traverse(function(child) {
+                    if (child.isMesh) {
+                        child.material.wireframe = isWireframe;
+                    }
+                });
+                updateStatus(isWireframe ? '切換到線框模式' : '切換到實體模式');
+            }
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '狀態：' + message;
+            console.log(message);
+        }
+        
+        // 響應式調整
+        window.addEventListener('resize', function() {
+            const container = document.getElementById('viewer');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

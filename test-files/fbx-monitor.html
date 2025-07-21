@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX 模型載入監控</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .console {
+            background: #2d2d2d;
+            border: 1px solid #404040;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007acc;
+            padding-left: 10px;
+        }
+        .log-error {
+            border-left-color: #f44747;
+            color: #f44747;
+        }
+        .log-success {
+            border-left-color: #4ec9b0;
+            color: #4ec9b0;
+        }
+        .log-warning {
+            border-left-color: #ffcc02;
+            color: #ffcc02;
+        }
+        .controls {
+            background: #252526;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #106ba3;
+        }
+        .status {
+            background: #252526;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+        }
+        .stat {
+            flex: 1;
+            text-align: center;
+        }
+        .stat h3 {
+            margin: 0 0 10px 0;
+            color: #4ec9b0;
+        }
+        .stat .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 FBX 模型載入監控</h1>
+        
+        <div class="controls">
+            <button onclick="loadFBXModel()">載入 FBX 模型</button>
+            <button onclick="checkThreeJS()">檢查 Three.js</button>
+            <button onclick="checkFBXLoader()">檢查 FBXLoader</button>
+            <button onclick="clearConsole()">清除記錄</button>
+            <button onclick="testColorMaterials()">測試彩色材質</button>
+        </div>
+
+        <div class="status">
+            <div class="stat">
+                <h3>載入狀態</h3>
+                <div id="status" class="value">待機</div>
+            </div>
+            <div class="stat">
+                <h3>進度</h3>
+                <div id="progress" class="value">0%</div>
+            </div>
+            <div class="stat">
+                <h3>網格數量</h3>
+                <div id="meshes" class="value">0</div>
+            </div>
+            <div class="stat">
+                <h3>材質修復</h3>
+                <div id="fixes" class="value">0</div>
+            </div>
+        </div>
+
+        <div class="console" id="console">
+            <div class="log-entry">Console 已就緒，等待載入...</div>
+        </div>
+    </div>
+
+    <!-- Three.js 庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+
+    <script>
+        let meshCount = 0;
+        let fixCount = 0;
+
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `[${time}] ${message}`;
+            console.appendChild(entry);
+            console.scrollTop = console.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress').textContent = percent + '%';
+        }
+
+        function updateMeshes(count) {
+            document.getElementById('meshes').textContent = count;
+            meshCount = count;
+        }
+
+        function updateFixes(count) {
+            document.getElementById('fixes').textContent = count;
+            fixCount = count;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div class="log-entry">Console 已清除</div>';
+        }
+
+        function checkThreeJS() {
+            if (typeof THREE !== 'undefined') {
+                log(`✅ Three.js 已載入 (版本: ${THREE.REVISION})`, 'success');
+            } else {
+                log('❌ Three.js 未找到', 'error');
+            }
+        }
+
+        function checkFBXLoader() {
+            if (typeof THREE.FBXLoader !== 'undefined') {
+                log('✅ FBXLoader 已可用', 'success');
+            } else {
+                log('❌ FBXLoader 未找到', 'error');
+            }
+        }
+
+        function loadFBXModel() {
+            if (typeof THREE.FBXLoader === 'undefined') {
+                log('❌ FBXLoader 未載入，無法開始', 'error');
+                return;
+            }
+            
+            updateStatus('載入中');
+            updateProgress(0);
+            updateMeshes(0);
+            updateFixes(0);
+            
+            const loader = new THREE.FBXLoader();
+            log('🚀 開始載入 FBX 模型: models/fuck.fbx');
+            
+            loader.load(
+                'models/fuck.fbx',
+                function(object) {
+                    log('✅ FBX 模型載入成功！', 'success');
+                    updateStatus('分析中');
+                    
+                    let meshes = 0;
+                    let fixes = 0;
+                    
+                    // 分析模型結構
+                    object.traverse(function(child) {
+                        if (child.isMesh) {
+                            meshes++;
+                            log(`📦 找到網格: ${child.name || 'unnamed'}`);
+                            
+                            // 檢查材質
+                            if (!child.material) {
+                                fixes++;
+                                log(`🔧 修復: 為 ${child.name || 'unnamed'} 添加材質`, 'warning');
+                                child.material = new THREE.MeshLambertMaterial({
+                                    color: Math.random() * 0xffffff
+                                });
+                            } else {
+                                log(`✅ 材質OK: ${child.material.type} - #${child.material.color ? child.material.color.getHexString() : 'none'}`);
+                                
+                                if (child.material.type === 'MeshBasicMaterial') {
+                                    fixes++;
+                                    log(`🔧 修復: 轉換 ${child.name || 'unnamed'} 為 Lambert 材質`, 'warning');
+                                }
+                                
+                                if (child.material.color && child.material.color.r < 0.1 && child.material.color.g < 0.1 && child.material.color.b < 0.1) {
+                                    fixes++;
+                                    log(`🔧 修復: 調亮 ${child.name || 'unnamed'} 的暗色材質`, 'warning');
+                                }
+                            }
+                        }
+                    });
+                    
+                    updateMeshes(meshes);
+                    updateFixes(fixes);
+                    updateStatus('完成');
+                    updateProgress(100);
+                    
+                    log(`🎉 分析完成！網格: ${meshes}, 修復: ${fixes}`, 'success');
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateProgress(percent);
+                    log(`📥 載入進度: ${percent}%`);
+                },
+                function(error) {
+                    log(`❌ 載入失敗: ${error}`, 'error');
+                    updateStatus('失敗');
+                }
+            );
+        }
+
+        function testColorMaterials() {
+            log('🎨 測試彩色材質系統');
+            const colors = [0x4a90e2, 0xe74c3c, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c];
+            colors.forEach((color, index) => {
+                log(`🎨 顏色 ${index + 1}: #${color.toString(16)}`);
+            });
+            log('✅ 彩色材質系統測試完成', 'success');
+        }
+
+        // 頁面載入時執行檢查
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 頁面載入完成，開始檢查...');
+            checkThreeJS();
+            checkFBXLoader();
+            log('ℹ️ 點擊 "載入 FBX 模型" 開始測試');
+        });
+    </script>
+</body>
+</html>

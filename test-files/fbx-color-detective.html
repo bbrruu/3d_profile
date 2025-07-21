@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>FBX 顏色資訊深度檢測</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+        .critical {
+            border-left-color: #e74c3c;
+        }
+        .success {
+            border-left-color: #2ecc71;
+        }
+        .warning {
+            border-left-color: #f39c12;
+        }
+        #viewer {
+            width: 800px;
+            height: 600px;
+            border: 2px solid #555;
+            margin: 20px auto;
+            background: #000;
+        }
+        .analysis {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .color-sample {
+            height: 50px;
+            border: 1px solid #666;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 FBX 顏色資訊深度檢測報告</h1>
+        
+        <div class="section">
+            <h2>檢測目的</h2>
+            <p>這個工具會深度分析您的 FBX 檔案，確定：</p>
+            <ul>
+                <li>模型是否包含原始顏色資訊</li>
+                <li>顏色是否在匯出過程中丟失</li>
+                <li>材質類型和屬性</li>
+                <li>建議的修復方案</li>
+            </ul>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button onclick="startDeepAnalysis()">開始深度檢測</button>
+                <button onclick="showRawData()">顯示原始數據</button>
+                <button onclick="exportReport()">匯出報告</button>
+            </div>
+        </div>
+
+        <div id="status-section" class="section">
+            <h3>檢測狀態</h3>
+            <div id="status">準備開始檢測...</div>
+        </div>
+
+        <div id="viewer"></div>
+
+        <div id="results" style="display: none;">
+            <div class="section success">
+                <h2>📊 檢測結果總覽</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="mesh-count">0</div>
+                        <div>網格數量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="material-count">0</div>
+                        <div>材質數量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="color-count">0</div>
+                        <div>有顏色材質</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="texture-count">0</div>
+                        <div>貼圖數量</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="color-analysis" class="section">
+                <h2>🎨 顏色分析</h2>
+                <div id="color-grid" class="color-grid"></div>
+            </div>
+
+            <div id="conclusion-section" class="section">
+                <h2>🎯 結論和建議</h2>
+                <div id="conclusion"></div>
+            </div>
+
+            <div class="section">
+                <h2>📋 詳細分析報告</h2>
+                <div id="detailed-analysis" class="analysis"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+
+    <script>
+        let scene, camera, renderer;
+        let model;
+        let analysisData = {};
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            console.log(message);
+        }
+
+        function log(message) {
+            const analysisDiv = document.getElementById('detailed-analysis');
+            analysisDiv.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            analysisDiv.scrollTop = analysisDiv.scrollHeight;
+        }
+
+        function initViewer() {
+            const container = document.getElementById('viewer');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(800, 600);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // 完整的光照設置來檢測所有可能的顏色
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            animate();
+        }
+
+        function startDeepAnalysis() {
+            updateStatus('初始化 3D 檢視器...');
+            initViewer();
+            
+            updateStatus('開始載入 FBX 檔案...');
+            loadAndAnalyze();
+        }
+
+        function loadAndAnalyze() {
+            const loader = new THREE.FBXLoader();
+            
+            loader.load(
+                'models/3D_sample.fbx',
+                function(object) {
+                    updateStatus('FBX 載入成功，開始深度分析...');
+                    model = object;
+                    
+                    // 設置模型顯示
+                    setupModel();
+                    
+                    // 執行深度分析
+                    performDeepAnalysis();
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus(`載入失敗: ${error}`, 'error');
+                    log(`錯誤詳情: ${error}`);
+                }
+            );
+        }
+
+        function setupModel() {
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 3 / maxDim;
+            model.scale.setScalar(scale);
+            
+            model.position.set(
+                -center.x * scale,
+                -center.y * scale,
+                -center.z * scale
+            );
+            
+            scene.add(model);
+        }
+
+        function performDeepAnalysis() {
+            log('=== FBX 深度顏色分析開始 ===');
+            log(`檔案: models/3D_sample.fbx`);
+            log(`分析時間: ${new Date()}`);
+            log('');
+            
+            analysisData = {
+                meshes: [],
+                totalMeshes: 0,
+                totalMaterials: 0,
+                hasColorMaterials: 0,
+                hasTextureMaterials: 0,
+                materialTypes: {},
+                colors: [],
+                hasOriginalColors: false,
+                exportLossDetected: false,
+                recommendations: []
+            };
+
+            model.traverse(function(child) {
+                if (child.isMesh) {
+                    analysisData.totalMeshes++;
+                    
+                    const meshData = {
+                        name: child.name || `Mesh_${analysisData.totalMeshes}`,
+                        hasMaterial: false,
+                        materialType: 'none',
+                        hasColor: false,
+                        hasTexture: false,
+                        colorInfo: null,
+                        rawMaterial: null
+                    };
+
+                    if (child.material) {
+                        analysisData.totalMaterials++;
+                        meshData.hasMaterial = true;
+                        meshData.materialType = child.material.type;
+                        meshData.rawMaterial = child.material;
+                        
+                        // 統計材質類型
+                        if (!analysisData.materialTypes[child.material.type]) {
+                            analysisData.materialTypes[child.material.type] = 0;
+                        }
+                        analysisData.materialTypes[child.material.type]++;
+                        
+                        // 檢查顏色
+                        if (child.material.color) {
+                            meshData.hasColor = true;
+                            analysisData.hasColorMaterials++;
+                            
+                            const color = child.material.color;
+                            const r = Math.round(color.r * 255);
+                            const g = Math.round(color.g * 255);
+                            const b = Math.round(color.b * 255);
+                            
+                            meshData.colorInfo = {
+                                hex: '#' + color.getHexString(),
+                                rgb: [r, g, b],
+                                isBlue: color.b > 0.5 && color.b > color.r && color.b > color.g,
+                                isBlack: r < 20 && g < 20 && b < 20,
+                                brightness: (r + g + b) / 3
+                            };
+                            
+                            analysisData.colors.push(meshData.colorInfo);
+                            
+                            // 檢測是否有真正的顏色（非黑白）
+                            if (meshData.colorInfo.brightness > 30 && !meshData.colorInfo.isBlack) {
+                                analysisData.hasOriginalColors = true;
+                            }
+                        }
+                        
+                        // 檢查貼圖
+                        if (child.material.map || child.material.diffuseMap || child.material.albedoMap) {
+                            meshData.hasTexture = true;
+                            analysisData.hasTextureMaterials++;
+                        }
+                        
+                        log(`網格 ${analysisData.totalMeshes}: ${meshData.name}`);
+                        log(`  材質類型: ${meshData.materialType}`);
+                        log(`  有顏色: ${meshData.hasColor ? '是' : '否'}`);
+                        if (meshData.hasColor) {
+                            log(`  顏色值: ${meshData.colorInfo.hex} RGB(${meshData.colorInfo.rgb.join(', ')})`);
+                            log(`  亮度: ${Math.round(meshData.colorInfo.brightness)}/255`);
+                        }
+                        log(`  有貼圖: ${meshData.hasTexture ? '是' : '否'}`);
+                        log('  ---');
+                    } else {
+                        log(`網格 ${analysisData.totalMeshes}: ${meshData.name} - 無材質`);
+                        log('  ---');
+                    }
+                    
+                    analysisData.meshes.push(meshData);
+                }
+            });
+
+            // 分析結果
+            analyzeResults();
+            updateUI();
+        }
+
+        function analyzeResults() {
+            log('');
+            log('=== 分析結果 ===');
+            
+            // 檢測顏色丟失
+            const coloredMeshes = analysisData.meshes.filter(m => m.hasColor);
+            const brightColoredMeshes = coloredMeshes.filter(m => m.colorInfo.brightness > 50);
+            
+            log(`總網格數: ${analysisData.totalMeshes}`);
+            log(`有材質的網格: ${analysisData.totalMaterials}`);
+            log(`有顏色的材質: ${analysisData.hasColorMaterials}`);
+            log(`有貼圖的材質: ${analysisData.hasTextureMaterials}`);
+            log(`有明亮顏色的材質: ${brightColoredMeshes.length}`);
+            
+            // 材質類型分析
+            log('');
+            log('材質類型分佈:');
+            Object.entries(analysisData.materialTypes).forEach(([type, count]) => {
+                log(`  ${type}: ${count} 個`);
+            });
+            
+            // 判斷顏色狀況
+            log('');
+            log('=== 顏色狀況診斷 ===');
+            
+            if (analysisData.hasColorMaterials === 0) {
+                log('❌ 未發現任何顏色資訊');
+                analysisData.exportLossDetected = true;
+                analysisData.recommendations.push('模型在匯出過程中完全丟失了顏色資訊');
+                analysisData.recommendations.push('建議檢查原始檔案的匯出設定');
+                analysisData.recommendations.push('可能需要重新匯出 FBX 檔案');
+            } else if (brightColoredMeshes.length === 0) {
+                log('⚠️ 有顏色屬性但都太暗或為黑色');
+                analysisData.exportLossDetected = true;
+                analysisData.recommendations.push('顏色資訊部分丟失，只剩下暗色/黑色');
+                analysisData.recommendations.push('建議在程式中手動調整顏色');
+            } else {
+                log('✅ 發現有效的顏色資訊');
+                analysisData.hasOriginalColors = true;
+                
+                // 檢查藍色
+                const blueMeshes = coloredMeshes.filter(m => m.colorInfo.isBlue);
+                if (blueMeshes.length > 0) {
+                    log(`✅ 發現 ${blueMeshes.length} 個藍色材質，符合模型師描述`);
+                    analysisData.recommendations.push('模型確實包含藍色，可以正常顯示');
+                } else {
+                    log('⚠️ 未發現明顯的藍色材質');
+                    analysisData.recommendations.push('可能需要手動調整為藍色');
+                }
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('results').style.display = 'block';
+            
+            // 更新統計
+            document.getElementById('mesh-count').textContent = analysisData.totalMeshes;
+            document.getElementById('material-count').textContent = analysisData.totalMaterials;
+            document.getElementById('color-count').textContent = analysisData.hasColorMaterials;
+            document.getElementById('texture-count').textContent = analysisData.hasTextureMaterials;
+            
+            // 更新顏色網格
+            const colorGrid = document.getElementById('color-grid');
+            colorGrid.innerHTML = '';
+            
+            if (analysisData.colors.length > 0) {
+                analysisData.colors.forEach((colorInfo, index) => {
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'color-sample';
+                    colorDiv.style.backgroundColor = colorInfo.hex;
+                    colorDiv.style.color = colorInfo.brightness > 128 ? '#000' : '#fff';
+                    colorDiv.textContent = colorInfo.hex;
+                    colorGrid.appendChild(colorDiv);
+                });
+            } else {
+                colorGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #999;">未發現任何顏色</div>';
+            }
+            
+            // 更新結論
+            const conclusion = document.getElementById('conclusion');
+            let conclusionHTML = '';
+            
+            if (analysisData.hasOriginalColors) {
+                conclusionHTML += '<div class="section success"><h3>✅ 好消息！</h3><p>您的 FBX 檔案<strong>確實包含顏色資訊</strong>，沒有在匯出過程中完全丟失。</p></div>';
+            } else if (analysisData.exportLossDetected) {
+                conclusionHTML += '<div class="section critical"><h3>❌ 發現問題</h3><p>您的 FBX 檔案<strong>缺少有效的顏色資訊</strong>，可能在匯出過程中丟失了。</p></div>';
+            }
+            
+            conclusionHTML += '<div class="section"><h3>🔧 建議措施</h3><ul>';
+            analysisData.recommendations.forEach(rec => {
+                conclusionHTML += `<li>${rec}</li>`;
+            });
+            conclusionHTML += '</ul></div>';
+            
+            conclusion.innerHTML = conclusionHTML;
+            
+            updateStatus('深度分析完成！查看下方結果。');
+        }
+
+        function showRawData() {
+            console.log('FBX Analysis Data:', analysisData);
+            alert('原始數據已輸出到瀏覽器控制台 (F12)');
+        }
+
+        function exportReport() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                file: 'models/3D_sample.fbx',
+                summary: {
+                    totalMeshes: analysisData.totalMeshes,
+                    totalMaterials: analysisData.totalMaterials,
+                    hasColorMaterials: analysisData.hasColorMaterials,
+                    hasTextureMaterials: analysisData.hasTextureMaterials,
+                    hasOriginalColors: analysisData.hasOriginalColors,
+                    exportLossDetected: analysisData.exportLossDetected
+                },
+                materialTypes: analysisData.materialTypes,
+                colors: analysisData.colors,
+                recommendations: analysisData.recommendations
+            };
+            
+            const dataStr = JSON.stringify(report, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'fbx-color-analysis-report.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (model) {
+                model.rotation.y += 0.005;
+            }
+            
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+    </script>
+</body>
+</html>

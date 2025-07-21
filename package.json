@@ -1,0 +1,45 @@
+{
+  "name": "3d-designer-website",
+  "version": "1.0.0",
+  "description": "專業3D模型設計師網站，提供3D建模、視覺化和即時預覽功能",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "start-node": "npx http-server -p 8000 -c-1",
+    "dev": "python3 -m http.server 8000",
+    "build": "echo '靜態網站不需要建置過程'",
+    "serve": "python3 -m http.server 8000",
+    "generate-images": "open image-generator.html"
+  },
+  "keywords": [
+    "3d-modeling",
+    "web-design",
+    "three.js",
+    "webgl",
+    "portfolio",
+    "3d-visualization",
+    "responsive-design"
+  ],
+  "author": "3D Designer Studio",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "three": "^0.158.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/3d-designer-website.git"
+  },
+  "homepage": "https://yourusername.github.io/3d-designer-website/",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

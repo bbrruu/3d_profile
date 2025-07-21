@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片生成器 - 3D設計師網站</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .generator {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .controls label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        .controls input, .controls select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            max-width: 300px;
+        }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>3D設計師網站 - 示例圖片生成器</h1>
+    
+    <div class="info">
+        <strong>說明：</strong>這個工具可以幫您快速生成佔位圖片，用於網站開發和測試。
+    </div>
+
+    <div class="generator">
+        <h2>作品集圖片生成器</h2>
+        
+        <div class="controls">
+            <label for="imageTitle">圖片標題：</label>
+            <input type="text" id="imageTitle" value="建築視覺化專案" placeholder="輸入圖片標題">
+            
+            <label for="imageWidth">寬度：</label>
+            <input type="number" id="imageWidth" value="400" min="100" max="1200">
+            
+            <label for="imageHeight">高度：</label>
+            <input type="number" id="imageHeight" value="300" min="100" max="800">
+            
+            <label for="bgColor">背景顏色：</label>
+            <input type="color" id="bgColor" value="#667eea">
+            
+            <label for="textColor">文字顏色：</label>
+            <input type="color" id="textColor" value="#ffffff">
+            
+            <label for="imageType">圖片類型：</label>
+            <select id="imageType">
+                <option value="project1">建築視覺化</option>
+                <option value="project2">產品設計</option>
+                <option value="project3">角色建模</option>
+                <option value="custom">自訂</option>
+            </select>
+        </div>
+        
+        <div class="preview">
+            <canvas id="imageCanvas" width="400" height="300"></canvas>
+        </div>
+        
+        <button onclick="generateImage()">生成圖片</button>
+        <button onclick="downloadImage()">下載圖片</button>
+        <button onclick="generateAllSamples()">生成所有示例</button>
+    </div>
+
+    <div class="generator">
+        <h2>3D模型資訊</h2>
+        <div class="info">
+            <h3>推薦的3D模型來源：</h3>
+            <ul>
+                <li><strong>免費資源：</strong>
+                    <ul>
+                        <li>Sketchfab（免費模型）</li>
+                        <li>Google Poly Archive</li>
+                        <li>Free3D</li>
+                        <li>TurboSquid（免費部分）</li>
+                    </ul>
+                </li>
+                <li><strong>建議格式：</strong> GLB（最佳）、GLTF、OBJ</li>
+                <li><strong>檔案大小：</strong> 建議小於10MB</li>
+                <li><strong>面數：</strong> 建議小於50k三角面</li>
+            </ul>
+        </div>
+        
+        <h3>示例模型下載連結：</h3>
+        <div class="info">
+            <p>您可以從以下位置下載示例模型並放入 models/ 資料夾：</p>
+            <ul>
+                <li><a href="https://sketchfab.com/3d-models/low-poly-house-73f00e7ebc2c4fc6ad6b3ad6f4c73c17" target="_blank">簡單房屋模型 (GLB)</a></li>
+                <li><a href="https://sketchfab.com/3d-models/smartphone-37d8bb69b2d7408ab863e1c25d3bfe5b" target="_blank">智慧型手機模型 (GLB)</a></li>
+                <li><a href="https://sketchfab.com/3d-models/simple-character-0a47b7bb26c54749b7ff3bb54a43b762" target="_blank">簡單角色模型 (GLB)</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const presets = {
+            project1: {
+                title: '現代建築視覺化',
+                bgColor: '#667eea',
+                textColor: '#ffffff',
+                icon: '🏗️'
+            },
+            project2: {
+                title: '產品設計建模',
+                bgColor: '#f093fb',
+                textColor: '#ffffff',
+                icon: '📱'
+            },
+            project3: {
+                title: '3D角色建模',
+                bgColor: '#4facfe',
+                textColor: '#ffffff',
+                icon: '🎮'
+            }
+        };
+
+        function generateImage() {
+            const title = document.getElementById('imageTitle').value;
+            const width = parseInt(document.getElementById('imageWidth').value);
+            const height = parseInt(document.getElementById('imageHeight').value);
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const imageType = document.getElementById('imageType').value;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // 創建漸變背景
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, bgColor);
+            gradient.addColorStop(1, adjustBrightness(bgColor, -20));
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 添加圖案
+            drawPattern(ctx, width, height, bgColor);
+
+            // 添加圖標
+            if (presets[imageType]) {
+                ctx.font = `${height * 0.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillText(presets[imageType].icon, width / 2, height / 2 - 20);
+            }
+
+            // 添加標題
+            ctx.font = `bold ${Math.min(width * 0.08, height * 0.12)}px Arial, sans-serif`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            // 多行文字處理
+            const words = title.split(' ');
+            const maxWidth = width * 0.8;
+            let line = '';
+            const lines = [];
+            
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+
+            const lineHeight = Math.min(width * 0.1, height * 0.15);
+            const totalHeight = lines.length * lineHeight;
+            const startY = (height + totalHeight) / 2;
+
+            lines.forEach((line, index) => {
+                ctx.fillText(line.trim(), width / 2, startY - (lines.length - 1 - index) * lineHeight);
+            });
+
+            // 重置陰影
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // 添加邊框
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, width, height);
+        }
+
+        function drawPattern(ctx, width, height, baseColor) {
+            ctx.save();
+            ctx.globalAlpha = 0.1;
+            
+            // 繪製幾何圖案
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 50 + 10;
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                
+                if (i % 3 === 0) {
+                    // 圓形
+                    ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+                } else if (i % 3 === 1) {
+                    // 正方形
+                    ctx.rect(x - size / 2, y - size / 2, size, size);
+                } else {
+                    // 三角形
+                    ctx.moveTo(x, y - size / 2);
+                    ctx.lineTo(x - size / 2, y + size / 2);
+                    ctx.lineTo(x + size / 2, y + size / 2);
+                    ctx.closePath();
+                }
+                
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255))
+                .toString(16).slice(1);
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            const imageType = document.getElementById('imageType').value;
+            const filename = imageType !== 'custom' ? `${imageType}.jpg` : 'custom-image.jpg';
+            
+            link.download = filename;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        }
+
+        function generateAllSamples() {
+            const originalWidth = document.getElementById('imageWidth').value;
+            const originalHeight = document.getElementById('imageHeight').value;
+            
+            // 設置標準尺寸
+            document.getElementById('imageWidth').value = 600;
+            document.getElementById('imageHeight').value = 400;
+            
+            Object.keys(presets).forEach((key, index) => {
+                setTimeout(() => {
+                    const preset = presets[key];
+                    document.getElementById('imageTitle').value = preset.title;
+                    document.getElementById('bgColor').value = preset.bgColor;
+                    document.getElementById('textColor').value = preset.textColor;
+                    document.getElementById('imageType').value = key;
+                    
+                    generateImage();
+                    
+                    setTimeout(() => {
+                        downloadImage();
+                    }, 100);
+                }, index * 500);
+            });
+            
+            // 恢復原始設定
+            setTimeout(() => {
+                document.getElementById('imageWidth').value = originalWidth;
+                document.getElementById('imageHeight').value = originalHeight;
+            }, Object.keys(presets).length * 500 + 1000);
+        }
+
+        // 當選擇預設類型時自動填入
+        document.getElementById('imageType').addEventListener('change', function() {
+            const selected = this.value;
+            if (presets[selected]) {
+                document.getElementById('imageTitle').value = presets[selected].title;
+                document.getElementById('bgColor').value = presets[selected].bgColor;
+                document.getElementById('textColor').value = presets[selected].textColor;
+                generateImage();
+            }
+        });
+
+        // 監聽所有輸入變化
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('input', generateImage);
+        });
+
+        // 初始生成
+        generateImage();
+    </script>
+</body>
+</html>

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>3D模型顏色調整器</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .control-group {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .control-group h3 {
+            margin-top: 0;
+            color: #4a90e2;
+        }
+        #viewer {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #555;
+            margin: 20px 0;
+            background: #000;
+        }
+        .color-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        input[type="color"] {
+            width: 50px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        input[type="range"] {
+            flex: 1;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        .preset-colors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .preset-color {
+            height: 40px;
+            border: 2px solid #666;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+        }
+        .preset-color:hover {
+            border-color: #4a90e2;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 3D模型顏色調整器</h1>
+        
+        <div class="status">
+            <h3>模型狀態</h3>
+            <div id="model-status">載入中...</div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>🎯 快速顏色預設</h3>
+                <div class="preset-colors">
+                    <div class="preset-color" style="background: #0066cc;" onclick="setColor('#0066cc')">藍色</div>
+                    <div class="preset-color" style="background: #cc0000;" onclick="setColor('#cc0000')">紅色</div>
+                    <div class="preset-color" style="background: #00cc00;" onclick="setColor('#00cc00')">綠色</div>
+                    <div class="preset-color" style="background: #ffcc00;" onclick="setColor('#ffcc00')">黃色</div>
+                    <div class="preset-color" style="background: #8B4513;" onclick="setColor('#8B4513')">棕色</div>
+                    <div class="preset-color" style="background: #F5F5DC;" onclick="setColor('#F5F5DC')">米色</div>
+                    <div class="preset-color" style="background: #D2691E;" onclick="setColor('#D2691E')">橙棕</div>
+                    <div class="preset-color" style="background: #ffffff; color: #000;" onclick="setColor('#ffffff')">白色</div>
+                </div>
+                <button onclick="setColor('#4a90e2')">🔵 設為經典藍色</button>
+                <button onclick="setColor('#8B4513')">🐰 設為兔子棕色</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 自訂顏色</h3>
+                <div class="color-input">
+                    <label>顏色選擇:</label>
+                    <input type="color" id="color-picker" value="#4a90e2" onchange="updateColorFromPicker()">
+                </div>
+                <div class="color-input">
+                    <label>亮度:</label>
+                    <input type="range" id="brightness" min="0" max="2" step="0.1" value="1" onchange="updateBrightness()">
+                    <span id="brightness-value">1.0</span>
+                </div>
+                <div class="color-input">
+                    <label>對比度:</label>
+                    <input type="range" id="contrast" min="0.5" max="2" step="0.1" value="1" onchange="updateContrast()">
+                    <span id="contrast-value">1.0</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>⚙️ 材質設定</h3>
+                <div class="color-input">
+                    <label>金屬度:</label>
+                    <input type="range" id="metalness" min="0" max="1" step="0.1" value="0" onchange="updateMaterial()">
+                    <span id="metalness-value">0.0</span>
+                </div>
+                <div class="color-input">
+                    <label>粗糙度:</label>
+                    <input type="range" id="roughness" min="0" max="1" step="0.1" value="0.5" onchange="updateMaterial()">
+                    <span id="roughness-value">0.5</span>
+                </div>
+                <button onclick="resetMaterial()">重置材質</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎯 模型選擇</h3>
+                <button onclick="loadFBXModel()">載入 FBX 模型</button>
+                <button onclick="loadOBJModel()">載入 OBJ 模型 (兔子)</button>
+            </div>
+
+            <div class="control-group">
+                <h3>💾 操作</h3>
+                <button onclick="saveColorScheme()">保存配色方案</button>
+                <button onclick="restoreOriginal()">恢復原始顏色</button>
+                <button onclick="applyToMainSite()">應用到主網站</button>
+            </div>
+        </div>
+
+        <div id="viewer"></div>
+
+        <div class="status">
+            <h3>📊 當前設定</h3>
+            <div id="current-settings">
+                <p><strong>當前顏色:</strong> <span id="current-color">#4a90e2</span></p>
+                <p><strong>RGB值:</strong> <span id="rgb-value">RGB(74, 144, 226)</span></p>
+                <p><strong>材質類型:</strong> <span id="material-type">標準材質</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let model;
+        let originalMaterials = [];
+        let currentColor = '#4a90e2';
+
+        function updateStatus(message) {
+            document.getElementById('model-status').textContent = message;
+            console.log(message);
+        }
+
+        function init() {
+            const container = document.getElementById('viewer');
+            
+            // 場景設定
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            // 相機設定
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 600, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            
+            // 渲染器設定
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, 600);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // 控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            // 光照
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 載入模型
+            loadModel();
+            
+            // 開始動畫
+            animate();
+        }
+
+        function loadModel() {
+            loadFBXModel();
+        }
+
+        function loadFBXModel() {
+            updateStatus('正在載入 3D_sample.fbx...');
+            
+            // 清除現有模型
+            if (model) {
+                scene.remove(model);
+                model = null;
+                originalMaterials = [];
+            }
+            
+            const loader = new THREE.FBXLoader();
+            loader.load(
+                'models/3D_sample.fbx',
+                function(object) {
+                    updateStatus('FBX 模型載入成功！檢測到原始顏色為白色 (#ffffff)');
+                    
+                    model = object;
+                    
+                    // 保存原始材質
+                    saveMaterials();
+                    
+                    // 設置模型
+                    setupModel();
+                    
+                    // 應用預設藍色
+                    setColor('#4a90e2');
+                    
+                    updateStatus('✅ FBX 模型已載入，可以開始調整顏色！');
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`FBX 載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus(`❌ FBX 載入失敗: ${error}`);
+                }
+            );
+        }
+
+        function loadOBJModel() {
+            updateStatus('正在載入 rabbit_hight-2.obj...');
+            
+            // 清除現有模型
+            if (model) {
+                scene.remove(model);
+                model = null;
+                originalMaterials = [];
+            }
+            
+            const loader = new THREE.OBJLoader();
+            loader.load(
+                'models/rabbit_hight-2.obj',
+                function(object) {
+                    updateStatus('OBJ 兔子模型載入成功！');
+                    
+                    model = object;
+                    
+                    // 為 OBJ 添加材質
+                    model.traverse(function(child) {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            
+                            // OBJ 通常沒有材質，添加預設材質
+                            child.material = new THREE.MeshLambertMaterial({
+                                color: 0x8B4513, // 棕色，適合兔子
+                                transparent: false,
+                                opacity: 1.0
+                            });
+                            
+                            console.log(`OBJ 網格: ${child.name || 'unnamed'}`);
+                        }
+                    });
+                    
+                    // 保存材質
+                    saveMaterials();
+                    
+                    // 設置模型
+                    setupModel();
+                    
+                    // 應用棕色
+                    setColor('#8B4513');
+                    
+                    updateStatus('✅ OBJ 兔子模型已載入，可以開始調整顏色！');
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`OBJ 載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus(`❌ OBJ 載入失敗: ${error}`);
+                    console.error('OBJ 載入錯誤:', error);
+                }
+            );
+        }
+
+        function saveMaterials() {
+            originalMaterials = [];
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    try {
+                        // 安全的材質複製
+                        let materialCopy;
+                        if (child.material.clone && typeof child.material.clone === 'function') {
+                            materialCopy = child.material.clone();
+                        } else {
+                            // 手動創建材質副本
+                            materialCopy = new THREE.MeshStandardMaterial({
+                                color: child.material.color ? child.material.color.clone() : 0xffffff,
+                                metalness: child.material.metalness || 0,
+                                roughness: child.material.roughness || 0.5,
+                                transparent: child.material.transparent || false,
+                                opacity: child.material.opacity || 1
+                            });
+                        }
+                        
+                        originalMaterials.push({
+                            mesh: child,
+                            material: materialCopy
+                        });
+                    } catch (error) {
+                        console.warn('無法複製材質:', error);
+                        // 使用原始材質引用作為備用方案
+                        originalMaterials.push({
+                            mesh: child,
+                            material: child.material
+                        });
+                    }
+                }
+            });
+        }
+
+        function setupModel() {
+            // 計算邊界框和縮放
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 3 / maxDim;
+            model.scale.setScalar(scale);
+            
+            // 重新計算縮放後的中心點
+            const scaledBox = new THREE.Box3().setFromObject(model);
+            const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+            
+            // 正確置中
+            model.position.set(
+                -scaledCenter.x,
+                -scaledCenter.y,
+                -scaledCenter.z
+            );
+            
+            scene.add(model);
+        }
+
+        function setColor(hexColor) {
+            if (!model) return;
+            
+            currentColor = hexColor;
+            const color = new THREE.Color(hexColor);
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    if (child.material.color) {
+                        child.material.color.copy(color);
+                    }
+                    
+                    // 確保材質更新
+                    child.material.needsUpdate = true;
+                }
+            });
+            
+            // 更新UI
+            updateColorDisplay(hexColor);
+            document.getElementById('color-picker').value = hexColor;
+        }
+
+        function updateColorDisplay(hexColor) {
+            const color = new THREE.Color(hexColor);
+            const r = Math.round(color.r * 255);
+            const g = Math.round(color.g * 255);
+            const b = Math.round(color.b * 255);
+            
+            document.getElementById('current-color').textContent = hexColor;
+            document.getElementById('rgb-value').textContent = `RGB(${r}, ${g}, ${b})`;
+        }
+
+        function updateColorFromPicker() {
+            const color = document.getElementById('color-picker').value;
+            setColor(color);
+        }
+
+        function updateBrightness() {
+            const brightness = parseFloat(document.getElementById('brightness').value);
+            document.getElementById('brightness-value').textContent = brightness.toFixed(1);
+            
+            if (!model) return;
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material && child.material.color) {
+                    const baseColor = new THREE.Color(currentColor);
+                    child.material.color.copy(baseColor).multiplyScalar(brightness);
+                    child.material.needsUpdate = true;
+                }
+            });
+        }
+
+        function updateContrast() {
+            const contrast = parseFloat(document.getElementById('contrast').value);
+            document.getElementById('contrast-value').textContent = contrast.toFixed(1);
+            // 對比度調整邏輯
+        }
+
+        function updateMaterial() {
+            const metalness = parseFloat(document.getElementById('metalness').value);
+            const roughness = parseFloat(document.getElementById('roughness').value);
+            
+            document.getElementById('metalness-value').textContent = metalness.toFixed(1);
+            document.getElementById('roughness-value').textContent = roughness.toFixed(1);
+            
+            if (!model) return;
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    if (child.material.metalness !== undefined) {
+                        child.material.metalness = metalness;
+                    }
+                    if (child.material.roughness !== undefined) {
+                        child.material.roughness = roughness;
+                    }
+                    child.material.needsUpdate = true;
+                }
+            });
+        }
+
+        function resetMaterial() {
+            document.getElementById('brightness').value = 1;
+            document.getElementById('contrast').value = 1;
+            document.getElementById('metalness').value = 0;
+            document.getElementById('roughness').value = 0.5;
+            
+            updateBrightness();
+            updateContrast();
+            updateMaterial();
+        }
+
+        function restoreOriginal() {
+            if (!model || originalMaterials.length === 0) return;
+            
+            originalMaterials.forEach(item => {
+                try {
+                    // 安全的材質恢復
+                    if (item.material.clone && typeof item.material.clone === 'function') {
+                        item.mesh.material = item.material.clone();
+                    } else {
+                        // 直接使用保存的材質
+                        item.mesh.material = item.material;
+                    }
+                } catch (error) {
+                    console.warn('無法恢復材質:', error);
+                    // 創建一個新的白色材質作為備用方案
+                    item.mesh.material = new THREE.MeshStandardMaterial({
+                        color: 0xffffff
+                    });
+                }
+            });
+            
+            updateStatus('已恢復原始白色材質');
+            updateColorDisplay('#ffffff');
+        }
+
+        function saveColorScheme() {
+            const scheme = {
+                color: currentColor,
+                brightness: document.getElementById('brightness').value,
+                contrast: document.getElementById('contrast').value,
+                metalness: document.getElementById('metalness').value,
+                roughness: document.getElementById('roughness').value
+            };
+            
+            localStorage.setItem('3d-color-scheme', JSON.stringify(scheme));
+            alert('配色方案已保存！');
+        }
+
+        function applyToMainSite() {
+            const settings = {
+                color: currentColor,
+                brightness: document.getElementById('brightness').value,
+                metalness: document.getElementById('metalness').value,
+                roughness: document.getElementById('roughness').value
+            };
+            
+            localStorage.setItem('main-site-color-settings', JSON.stringify(settings));
+            alert(`顏色設定已保存！\n顏色: ${currentColor}\n您可以在主網站中應用這些設定。`);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (controls) {
+                controls.update();
+            }
+            
+            if (model) {
+                model.rotation.y += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>模型原始顏色檢查</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #container { 
+            width: 800px; 
+            height: 600px; 
+            border: 2px solid #555; 
+            margin: 0 auto;
+            background: #000;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .material-info {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 模型原始顏色檢查</h1>
+    
+    <div class="info">
+        <div id="status">準備中...</div>
+        <div>這個頁面會顯示模型的原始材質和顏色</div>
+        <div>不會添加任何人工顏色</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="preserveOriginalColors()">保持原始顏色</button>
+        <button onclick="enhanceOriginalColors()">增強原始顏色</button>
+        <button onclick="showMaterialInfo()">分析材質資訊</button>
+    </div>
+
+    <div id="container"></div>
+
+    <div class="info">
+        <h3>材質分析</h3>
+        <div id="material-info" class="material-info">等待模型載入...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let model;
+        let originalMaterials = [];
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log(message);
+        }
+
+        function logMaterial(message) {
+            const materialInfo = document.getElementById('material-info');
+            materialInfo.innerHTML += message + '<br>';
+            materialInfo.scrollTop = materialInfo.scrollHeight;
+        }
+
+        function init() {
+            const container = document.getElementById('container');
+            
+            // 場景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            // 相機
+            camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(800, 600);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // 控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 0, 0);
+            controls.enableDamping = true;
+            
+            // 燈光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 額外的燈光來照亮模型
+            const pointLight = new THREE.PointLight(0xffffff, 0.5);
+            pointLight.position.set(-10, 10, 10);
+            scene.add(pointLight);
+            
+            updateStatus('場景初始化完成，載入模型...');
+            
+            loadModel();
+            animate();
+        }
+
+        function loadModel() {
+            const loader = new THREE.FBXLoader();
+            
+            loader.load(
+                'models/fuck.fbx',
+                function(object) {
+                    updateStatus('模型載入成功，分析原始材質...');
+                    
+                    model = object;
+                    
+                    // 置中模型
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 3 / maxDim;
+                    model.scale.setScalar(scale);
+                    
+                    model.position.set(
+                        -center.x * scale,
+                        -center.y * scale,
+                        -center.z * scale
+                    );
+                    
+                    // 分析原始材質 - 不修改任何顏色
+                    let meshCount = 0;
+                    let materialCount = 0;
+                    let blueCount = 0;
+                    let blackCount = 0;
+                    let otherCount = 0;
+                    
+                    logMaterial('=== 模型材質分析 ===');
+                    
+                    model.traverse(function(child) {
+                        if (child.isMesh) {
+                            meshCount++;
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            
+                            if (child.material) {
+                                materialCount++;
+                                
+                                // 安全地保存材質資訊，避免 clone() 錯誤
+                                try {
+                                    originalMaterials.push({
+                                        name: child.name || `mesh_${meshCount}`,
+                                        material: child.material.clone ? child.material.clone() : child.material
+                                    });
+                                } catch (e) {
+                                    // 如果 clone 失敗，保存基本資訊
+                                    originalMaterials.push({
+                                        name: child.name || `mesh_${meshCount}`,
+                                        materialType: child.material.type,
+                                        color: child.material.color ? child.material.color.clone() : null
+                                    });
+                                    logMaterial(`注意: ${child.name || 'unnamed'} 的材質無法複製: ${e.message}`);
+                                }
+                                
+                                let colorDescription = '無顏色';
+                                if (child.material.color) {
+                                    const color = child.material.color;
+                                    const hex = '#' + color.getHexString();
+                                    colorDescription = `RGB(${Math.round(color.r*255)}, ${Math.round(color.g*255)}, ${Math.round(color.b*255)}) / ${hex}`;
+                                    
+                                    // 檢查是否是藍色
+                                    if (color.b > 0.5 && color.b > color.r && color.b > color.g) {
+                                        blueCount++;
+                                        colorDescription += ' [藍色系]';
+                                    } else if (color.r < 0.1 && color.g < 0.1 && color.b < 0.1) {
+                                        blackCount++;
+                                        colorDescription += ' [黑色/暗色]';
+                                    } else {
+                                        otherCount++;
+                                    }
+                                }
+                                
+                                logMaterial(`網格 ${meshCount}: ${child.name || '未命名'}`);
+                                logMaterial(`  材質類型: ${child.material.type}`);
+                                logMaterial(`  顏色: ${colorDescription}`);
+                                logMaterial(`  透明度: ${child.material.opacity || 1}`);
+                                logMaterial(`---`);
+                            } else {
+                                logMaterial(`網格 ${meshCount}: ${child.name || '未命名'} - 無材質`);
+                            }
+                        }
+                    });
+                    
+                    scene.add(model);
+                    
+                    logMaterial('=== 統計結果 ===');
+                    logMaterial(`總網格數: ${meshCount}`);
+                    logMaterial(`有材質的網格: ${materialCount}`);
+                    logMaterial(`藍色材質: ${blueCount}`);
+                    logMaterial(`黑色/暗色材質: ${blackCount}`);
+                    logMaterial(`其他顏色: ${otherCount}`);
+                    
+                    updateStatus(`原始材質分析完成 - 藍色:${blueCount}, 黑色:${blackCount}, 其他:${otherCount}`);
+                },
+                function(progress) {
+                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+                    updateStatus(`載入進度: ${percent}%`);
+                },
+                function(error) {
+                    updateStatus('載入失敗: ' + error);
+                }
+            );
+        }
+
+        function preserveOriginalColors() {
+            if (!model) return;
+            
+            updateStatus('保持原始顏色模式');
+            logMaterial('=== 切換到原始顏色 ===');
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material) {
+                    // 只確保材質支援光照，不改變顏色
+                    if (child.material.type === 'MeshBasicMaterial') {
+                        const originalColor = child.material.color ? child.material.color.clone() : new THREE.Color(0x0000ff);
+                        child.material = new THREE.MeshLambertMaterial({
+                            color: originalColor,
+                            transparent: child.material.transparent,
+                            opacity: child.material.opacity
+                        });
+                        logMaterial(`轉換 ${child.name || '未命名'} 為 Lambert，保持原色 #${originalColor.getHexString()}`);
+                    }
+                }
+            });
+        }
+
+        function enhanceOriginalColors() {
+            if (!model) return;
+            
+            updateStatus('增強原始顏色模式');
+            logMaterial('=== 增強原始顏色 ===');
+            
+            model.traverse(function(child) {
+                if (child.isMesh && child.material && child.material.color) {
+                    const color = child.material.color;
+                    
+                    // 如果顏色太暗，輕微提亮但保持色調
+                    if (color.r < 0.2 && color.g < 0.2 && color.b < 0.2) {
+                        // 檢查是否是藍色系
+                        if (color.b >= color.r && color.b >= color.g) {
+                            // 是藍色系，設為明亮的藍色
+                            color.setHex(0x4a90e2);
+                            logMaterial(`增強藍色: ${child.name || '未命名'} -> 亮藍色`);
+                        } else {
+                            // 其他暗色，輕微提亮
+                            color.multiplyScalar(3);
+                            logMaterial(`提亮暗色: ${child.name || '未命名'}`);
+                        }
+                    }
+                }
+            });
+        }
+
+        function showMaterialInfo() {
+            if (originalMaterials.length === 0) {
+                logMaterial('尚未載入材質資訊');
+                return;
+            }
+            
+            logMaterial('=== 詳細材質資訊 ===');
+            originalMaterials.forEach((item, index) => {
+                logMaterial(`${index + 1}. ${item.name}:`);
+                
+                if (item.material) {
+                    const mat = item.material;
+                    logMaterial(`   類型: ${mat.type}`);
+                    if (mat.color) {
+                        logMaterial(`   原始顏色: #${mat.color.getHexString()}`);
+                    }
+                    if (mat.map) {
+                        logMaterial(`   貼圖: 有`);
+                    }
+                    logMaterial(`   不透明度: ${mat.opacity || 1}`);
+                } else {
+                    // 處理克隆失敗的情況
+                    logMaterial(`   類型: ${item.materialType || '未知'}`);
+                    if (item.color) {
+                        logMaterial(`   原始顏色: #${item.color.getHexString()}`);
+                    }
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (controls) {
+                controls.update();
+            }
+            
+            if (model) {
+                model.rotation.y += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // 開始
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(init, 100);
+        });
+    </script>
+</body>
+</html>
