@@ -79,7 +79,7 @@ function initHero3D() {
         }
         console.log('FBXLoader已載入，正在載入首頁FBX模型...');
         loadModel('models/3D_sample.fbx', heroScene, heroCamera, heroRenderer);
-    }, 1000); // 增加延遲確保所有庫都載入
+    }, 2000); // 增加延遲到2秒確保所有庫都載入
 }
 
 // 創建首頁展示幾何體
@@ -211,24 +211,54 @@ function addGridFloor(targetScene) {
 
 // 載入3D模型
 function loadModel(modelPath, targetScene, targetCamera, targetRenderer) {
-    if (!modelPath) return;
+    if (!modelPath) {
+        console.error('模型路徑為空');
+        return;
+    }
+
+    console.log('開始載入模型:', modelPath);
+    console.log('目標場景:', targetScene ? '已設定' : '未設定');
+    console.log('Three.js 版本:', THREE.REVISION);
+    console.log('FBXLoader 可用:', typeof THREE.FBXLoader !== 'undefined');
 
     // 獲取文件擴展名
     const extension = modelPath.split('.').pop().toLowerCase();
+    console.log('檔案擴展名:', extension);
     
     // 顯示載入提示
     showLoadingIndicator();
 
     // 根據文件擴展名選擇載入器
     if (extension === 'fbx') {
+        if (typeof THREE.FBXLoader === 'undefined') {
+            console.error('FBXLoader 未載入！');
+            hideLoadingIndicator();
+            showErrorMessage('FBXLoader 未載入，請重新整理頁面或檢查網路連線');
+            return;
+        }
+
+        console.log('創建 FBXLoader 實例...');
         const loader = new THREE.FBXLoader();
+        console.log('FBXLoader 實例已創建，開始載入:', modelPath);
+        
+        // 添加超時處理
+        const timeoutId = setTimeout(() => {
+            console.error('FBX 載入超時 (30秒)');
+            hideLoadingIndicator();
+            showErrorMessage('模型載入超時，請檢查網路連線或模型檔案大小');
+        }, 30000); // 30秒超時
         
         loader.load(
             modelPath,
             function(object) {
+                clearTimeout(timeoutId); // 清除超時計時器
+                console.log('✅ FBX 模型載入成功:', object);
+                console.log('模型類型:', object.type);
+                console.log('子物件數量:', object.children.length);
                 // 移除之前的模型
                 if (currentModel) {
                     targetScene.remove(currentModel);
+                    console.log('移除舊模型');
                 }
 
                 currentModel = object;
@@ -334,13 +364,16 @@ function loadModel(modelPath, targetScene, targetCamera, targetRenderer) {
             },
             function(progress) {
                 const percentage = progress.total > 0 ? (progress.loaded / progress.total * 100) : 0;
-                console.log('FBX載入進度: ' + percentage.toFixed(1) + '%');
+                console.log('FBX載入進度: ' + percentage.toFixed(1) + '% (' + progress.loaded + '/' + progress.total + ' bytes)');
                 updateLoadingProgress(progress.loaded, progress.total, '正在載入FBX模型...');
             },
             function(error) {
-                console.error('載入FBX模型時發生錯誤:', error);
+                clearTimeout(timeoutId); // 清除超時計時器
+                console.error('❌ 載入FBX模型時發生錯誤:', error);
+                console.error('錯誤詳情:', error.message || error);
+                console.error('模型路徑:', modelPath);
                 hideLoadingIndicator();
-                showErrorMessage('無法載入FBX模型，請檢查檔案格式。');
+                showErrorMessage('無法載入FBX模型: ' + (error.message || '未知錯誤'));
             }
         );
     } else if (extension === 'obj') {
@@ -738,14 +771,21 @@ function toggleWireframe(enabled) {
 
 // 開啟模型模態框
 function openModelModal(modelPath) {
+    console.log('🔍 開啟模型模態框:', modelPath);
     const modal = document.getElementById('model-modal');
-    if (!modal) return;
+    if (!modal) {
+        console.error('找不到模態框元素 #model-modal');
+        return;
+    }
 
     modal.style.display = 'block';
+    console.log('模態框已顯示');
     
     // 初始化模態框3D場景
     setTimeout(() => {
+        console.log('初始化模態框3D查看器...');
         initModalViewer();
+        console.log('載入模型到模態框:', modelPath);
         loadModel(modelPath, modalScene, modalCamera, modalRenderer);
     }, 100);
 }
@@ -770,8 +810,14 @@ function closeModelModal() {
 
 // 初始化模態框3D查看器
 function initModalViewer() {
+    console.log('📦 初始化模態框3D查看器...');
     const container = document.getElementById('modal-viewer');
-    if (!container) return;
+    if (!container) {
+        console.error('找不到模態框查看器容器 #modal-viewer');
+        return;
+    }
+
+    console.log('模態框容器尺寸:', container.clientWidth, 'x', container.clientHeight);
 
     // 清理之前的內容
     container.innerHTML = '';
@@ -785,6 +831,8 @@ function initModalViewer() {
     modalRenderer.setClearColor(0xf0f0f0);
     modalRenderer.shadowMap.enabled = true;
     container.appendChild(modalRenderer.domElement);
+
+    console.log('模態框渲染器尺寸設定:', container.clientWidth, 'x', container.clientHeight);
 
     // 控制器
     modalControls = new THREE.OrbitControls(modalCamera, modalRenderer.domElement);

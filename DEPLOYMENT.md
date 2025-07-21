@@ -205,5 +205,148 @@ git push -u origin main
 2. 確認所有檔案路徑正確
 3. 聯繫平台客服（GitHub/Vercel/Netlify 都有社群支援）
 
+## 🔄 網站更新流程
+
+### 💻 本地開發更新
+每次修改程式碼後，需要將變更推送到 GitHub，網站會自動更新：
+
+#### 步驟 1: 檢查變更
+```bash
+# 查看修改了哪些檔案
+git status
+
+# 查看具體變更內容
+git diff
+```
+
+#### 步驟 2: 添加變更
+```bash
+# 添加所有變更的檔案
+git add .
+
+# 或者添加特定檔案
+git add index.html css/style.css js/script.js
+```
+
+#### 步驟 3: 提交變更
+```bash
+# 提交變更並添加描述訊息
+git commit -m "更新說明，例如：修復建築模型載入問題"
+
+# 常見的提交訊息範例：
+# git commit -m "新增產品設計材質變化功能"
+# git commit -m "修復 3D 模型居中問題"
+# git commit -m "優化載入速度"
+# git commit -m "更新 UI 介面設計"
+```
+
+#### 步驟 4: 推送到 GitHub
+```bash
+# 推送變更到遠端倉庫
+git push origin main
+```
+
+### 🚀 自動部署
+
+#### GitHub Pages
+- ✅ **推送後 2-5 分鐘自動更新**
+- ✅ 前往 `https://bbrruu.github.io/3d_profile` 查看結果
+
+#### Vercel
+- ✅ **推送後 1-2 分鐘自動更新**
+- ✅ 前往您的 Vercel 網址查看結果
+- ✅ 可在 Vercel 控制台查看部署狀態
+
+### 📋 更新檢查清單
+
+在每次更新前，建議執行：
+
+1. **本地測試**
+```bash
+# 啟動本地伺服器測試
+python3 -m http.server 8000
+# 瀏覽器訪問 http://localhost:8000 確認功能正常
+```
+
+2. **檢查檔案**
+- ✅ 確認所有新檔案都已添加
+- ✅ 檢查 3D 模型路徑正確
+- ✅ 測試所有頁面連結
+
+3. **提交變更**
+```bash
+git add .
+git commit -m "具體的更新說明"
+git push origin main
+```
+
+### 🎯 常見更新情境
+
+#### 修改網站內容
+```bash
+# 修改 HTML/CSS/JS 檔案後
+git add .
+git commit -m "更新網站內容"
+git push origin main
+```
+
+#### 新增 3D 模型
+```bash
+# 添加新的 .fbx/.obj 檔案到 models/ 資料夾後
+git add models/
+git commit -m "新增 XXX 3D 模型"
+git push origin main
+```
+
+#### 修復錯誤
+```bash
+# 修復程式錯誤後
+git add .
+git commit -m "修復 XXX 功能問題"
+git push origin main
+```
+
+### ⚡ 快速更新腳本
+
+您也可以創建一個快速更新腳本：
+
+```bash
+#!/bin/bash
+# 快速更新腳本 - 儲存為 update.sh
+echo "🔄 正在更新網站..."
+
+# 添加所有變更
+git add .
+
+# 要求輸入提交訊息
+echo "請輸入更新說明："
+read commit_message
+
+# 提交變更
+git commit -m "$commit_message"
+
+# 推送到 GitHub
+git push origin main
+
+echo "✅ 網站更新完成！等待 2-5 分鐘部署完成。"
+```
+
+### 📊 部署狀態檢查
+
+#### GitHub Pages
+- 前往：`https://github.com/bbrruu/3d_profile/actions`
+- 查看部署狀態（綠色勾勾表示成功）
+
+#### Vercel
+- 登入 Vercel 控制台
+- 查看專案部署歷史和狀態
+
+### 💡 最佳實踐
+
+1. **頻繁小更新** - 每次只修改一個功能
+2. **清楚的提交訊息** - 方便追蹤變更歷史
+3. **本地測試** - 推送前確保功能正常
+4. **備份重要檔案** - Git 自動版本控制，但重要檔案另外備份
+
 ---
 *部署指南更新：2025年7月21日*

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX 載入測試</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #viewer {
+            width: 800px;
+            height: 600px;
+            border: 2px solid #ccc;
+            background-color: white;
+            margin: 20px auto;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #log {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: monospace;
+            margin: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>FBX 模型載入測試</h1>
+    
+    <div class="controls">
+        <button onclick="testLibraries()">測試庫載入</button>
+        <button onclick="loadModel('models/3D_sample.fbx')">載入 3D_sample.fbx</button>
+        <button onclick="loadModel('models/Minnan.fbx')">載入 Minnan.fbx</button>
+        <button onclick="clearScene()">清除場景</button>
+    </div>
+    
+    <div id="viewer"></div>
+    
+    <div id="log"></div>
+
+    <!-- Three.js 庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function testLibraries() {
+            log('=== 測試庫載入狀態 ===');
+            log('THREE 可用: ' + (typeof THREE !== 'undefined'));
+            log('THREE.Scene 可用: ' + (typeof THREE.Scene !== 'undefined'));
+            log('THREE.FBXLoader 可用: ' + (typeof THREE.FBXLoader !== 'undefined'));
+            log('THREE.OrbitControls 可用: ' + (typeof THREE.OrbitControls !== 'undefined'));
+            
+            if (typeof THREE !== 'undefined') {
+                log('THREE.js 版本: ' + THREE.REVISION);
+            }
+        }
+
+        function initScene() {
+            const container = document.getElementById('viewer');
+            
+            // 創建場景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            
+            // 創建相機
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            
+            // 創建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // 創建控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1;
+            
+            // 添加燈光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 添加網格地面
+            const gridHelper = new THREE.GridHelper(10, 10);
+            scene.add(gridHelper);
+            
+            // 開始渲染循環
+            animate();
+            
+            log('3D 場景初始化完成');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function loadModel(modelPath) {
+            log('=== 開始載入模型 ===');
+            log('模型路徑: ' + modelPath);
+            
+            if (typeof THREE.FBXLoader === 'undefined') {
+                log('錯誤: FBXLoader 未載入');
+                return;
+            }
+            
+            const loader = new THREE.FBXLoader();
+            log('FBXLoader 實例已創建');
+            
+            loader.load(
+                modelPath,
+                function(object) {
+                    log('✅ FBX 模型載入成功!');
+                    log('模型物件: ' + object.type);
+                    log('子物件數量: ' + object.children.length);
+                    
+                    // 移除舊模型
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                        log('移除舊模型');
+                    }
+                    
+                    currentModel = object;
+                    
+                    // 調整模型大小和位置
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const size = box.getSize(new THREE.Vector3());
+                    const center = box.getCenter(new THREE.Vector3());
+                    
+                    log('原始尺寸: ' + size.x.toFixed(2) + ', ' + size.y.toFixed(2) + ', ' + size.z.toFixed(2));
+                    
+                    // 縮放模型
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 3 / maxDim;
+                    currentModel.scale.setScalar(scale);
+                    
+                    // 重新計算縮放後的中心並置中
+                    const scaledBox = new THREE.Box3().setFromObject(currentModel);
+                    const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+                    currentModel.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z);
+                    
+                    log('縮放比例: ' + scale.toFixed(3));
+                    
+                    // 處理材質和陰影
+                    let meshCount = 0;
+                    currentModel.traverse(function(child) {
+                        if (child.isMesh) {
+                            meshCount++;
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            
+                            // 如果沒有材質或材質是黑色，添加藍色材質
+                            if (!child.material || (child.material.color && 
+                                child.material.color.r < 0.1 && 
+                                child.material.color.g < 0.1 && 
+                                child.material.color.b < 0.1)) {
+                                child.material = new THREE.MeshLambertMaterial({
+                                    color: 0x4a90e2
+                                });
+                            }
+                        }
+                    });
+                    
+                    log('網格數量: ' + meshCount);
+                    
+                    // 添加到場景
+                    scene.add(currentModel);
+                    log('模型已添加到場景');
+                },
+                function(progress) {
+                    if (progress.total > 0) {
+                        const percentage = (progress.loaded / progress.total * 100).toFixed(1);
+                        log('載入進度: ' + percentage + '%');
+                    }
+                },
+                function(error) {
+                    log('❌ 載入錯誤: ' + error.message);
+                    console.error('詳細錯誤:', error);
+                }
+            );
+        }
+
+        function clearScene() {
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+                log('場景已清除');
+            }
+        }
+
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                testLibraries();
+                initScene();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
