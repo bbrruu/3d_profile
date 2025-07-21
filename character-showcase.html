@@ -322,15 +322,15 @@
         }
 
         function loadRabbitCharacter() {
-            updateStatus('載入兔子角色模型...');
+            updateStatus('建立角色模型佔位符...');
             
-            const loader = new THREE.OBJLoader();
-            loader.load(
-                'models/rabbit_hight-2.obj',
-                function(object) {
-                    updateStatus('✅ 兔子角色載入成功！');
-                    
-                    rabbitModel = object;
+            // 暫時使用佔位符幾何體，等待新的角色模型
+            const geometry = new THREE.BoxGeometry(2, 3, 1);
+            const material = new THREE.MeshLambertMaterial({ color: 0x44aa88 });
+            rabbitModel = new THREE.Mesh(geometry, material);
+            rabbitModel.position.y = 1;
+            
+            updateStatus('✅ 角色佔位符載入成功！');
                     
                     // 為角色添加材質
                     let meshCount = 0;
@@ -352,21 +352,21 @@
                     // 設置模型
                     setupCharacterModel();
                     
-                    // 更新技術規格
-                    document.getElementById('mesh-count').textContent = meshCount;
-                    document.getElementById('current-color').textContent = currentColor;
                     
-                    updateStatus('🐰 兔子角色已就緒，可以開始自訂！');
-                },
-                function(progress) {
-                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
-                    updateStatus(`載入進度: ${percent}%`);
-                },
-                function(error) {
-                    updateStatus(`❌ 載入失敗: ${error}`);
-                    console.error('載入錯誤:', error);
-                }
-            );
+            // 設定材質屬性
+            rabbitModel.material.color.setHex(0x44aa88);
+            rabbitModel.castShadow = true;
+            rabbitModel.receiveShadow = true;
+            
+            // 添加到場景
+            scene.add(rabbitModel);
+            setupCharacterModel();
+            
+            // 更新技術規格
+            document.getElementById('mesh-count').textContent = '1';
+            document.getElementById('current-color').textContent = currentColor;
+            
+            updateStatus('🎯 角色佔位符已就緒，等待新模型！');
         }
 
         function setupCharacterModel() {
