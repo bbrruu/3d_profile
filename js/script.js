@@ -892,7 +892,7 @@ function handleContactForm(event) {
         from_name: formData.get('name'),
         from_email: formData.get('email'),
         reply_to: formData.get('email'),
-        to_email: 'bbrr.uu99@gmail.com'
+        to_email: 'mumu3dartist@gmail.com' // 🔑 請替換為你想要的收件信箱
     };
 
     console.log('發送的模板參數:', templateParams); // 除錯用
