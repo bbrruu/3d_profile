@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initMainViewer();
     initEventListeners();
     initScrollAnimations();
+    initEmailJS();
 });
 
 // 初始化首頁3D場景
@@ -68,18 +69,6 @@ function initHero3D() {
             heroRenderer.setSize(container.clientWidth, container.clientHeight);
         }
     });
-
-    // 自動載入FBX模型到首頁展示
-    setTimeout(() => {
-        console.log('檢查FBXLoader是否可用...');
-        if (typeof THREE.FBXLoader === 'undefined') {
-            console.error('FBXLoader未載入，嘗試備用方案...');
-            createHeroGeometry(); // 回退到幾何體展示
-            return;
-        }
-        console.log('FBXLoader已載入，正在載入首頁FBX模型...');
-        loadModel('models/3D_sample.fbx', heroScene, heroCamera, heroRenderer);
-    }, 2000); // 增加延遲到2秒確保所有庫都載入
 }
 
 // 創建首頁展示幾何體
@@ -143,7 +132,7 @@ function initMainViewer() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setClearColor(0xf0f0f0);
+    renderer.setClearColor(0xe8e8e8); // 更淺的背景色讓模型更明顯
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
@@ -158,8 +147,8 @@ function initMainViewer() {
     // 燈光設置
     setupLighting(scene);
 
-    // 添加網格地板
-    addGridFloor(scene);
+    // 添加地面平面
+    addGroundPlane(scene);
 
     // 相機位置
     camera.position.set(5, 5, 5);
@@ -203,10 +192,19 @@ function setupLighting(targetScene) {
     targetScene.add(light2);
 }
 
-// 添加網格地板
-function addGridFloor(targetScene) {
-    const gridHelper = new THREE.GridHelper(20, 20, 0xcccccc, 0xcccccc);
-    targetScene.add(gridHelper);
+// 添加簡單地面平面（無網格）
+function addGroundPlane(targetScene) {
+    const planeGeometry = new THREE.PlaneGeometry(20, 20);
+    const planeMaterial = new THREE.MeshLambertMaterial({ 
+        color: 0xf5f5f5, 
+        transparent: true, 
+        opacity: 0.8 
+    });
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -0.1; // 稍微低於地面
+    plane.receiveShadow = true;
+    targetScene.add(plane);
 }
 
 // 載入3D模型
@@ -828,7 +826,7 @@ function initModalViewer() {
     modalRenderer = new THREE.WebGLRenderer({ antialias: true });
     
     modalRenderer.setSize(container.clientWidth, container.clientHeight);
-    modalRenderer.setClearColor(0xf0f0f0);
+    modalRenderer.setClearColor(0xe8e8e8); // 更淺的背景色讓模型更明顯
     modalRenderer.shadowMap.enabled = true;
     container.appendChild(modalRenderer.domElement);
 
@@ -841,7 +839,9 @@ function initModalViewer() {
 
     // 燈光設置
     setupLighting(modalScene);
-    addGridFloor(modalScene);
+
+    // 添加地面平面
+    addGroundPlane(modalScene);
 
     // 相機位置
     modalCamera.position.set(5, 5, 5);
@@ -858,26 +858,67 @@ function initModalViewer() {
     animateModal();
 }
 
+// 初始化 EmailJS
+function initEmailJS() {
+    // 請替換為你的 EmailJS 公鑰 (Public Key)
+    emailjs.init("tZ7fhIMYhiCmS1kzD"); // 🔑 需要替換為實際的公鑰
+}
+
 // 處理聯絡表單
 function handleContactForm(event) {
     event.preventDefault();
     
+    // 顯示載入狀態
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = '發送中...';
+    submitBtn.disabled = true;
+    
     const formData = new FormData(event.target);
-    const data = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        service: formData.get('service'),
-        message: formData.get('message')
+    
+    // 獲取服務項目的顯示文字而不是值
+    const serviceSelect = event.target.querySelector('#service');
+    const serviceText = serviceSelect.options[serviceSelect.selectedIndex].text;
+    
+    const templateParams = {
+        // 使用標準的 EmailJS 變數名稱
+        user_name: formData.get('name'),
+        user_email: formData.get('email'),
+        service_type: serviceText, // 使用顯示文字而不是值
+        message: formData.get('message'),
+        // 額外的變數名稱以確保兼容性
+        name: formData.get('name'), // 對應模板中的 {{name}}
+        email: formData.get('email'), // 對應模板中的 {{email}}
+        from_name: formData.get('name'),
+        from_email: formData.get('email'),
+        reply_to: formData.get('email'),
+        to_email: 'bbrr.uu99@gmail.com'
     };
 
-    // 這裡可以添加實際的表單提交邏輯
-    console.log('表單資料:', data);
-    
-    // 顯示成功訊息
-    showSuccessMessage('訊息已送出！我們將盡快與您聯絡。');
-    
-    // 重置表單
-    event.target.reset();
+    console.log('發送的模板參數:', templateParams); // 除錯用
+
+    // 發送郵件使用 EmailJS
+    emailjs.send(
+        'service_qcgujxu',    // 🔑 需要替換為你的服務 ID
+        'template_v8f43ec',   // 🔑 需要替換為你的模板 ID
+        templateParams
+    ).then(
+        function(response) {
+            console.log('郵件發送成功!', response.status, response.text);
+            showSuccessMessage('✅ 訊息已成功送出！我們將盡快與您聯絡。');
+            event.target.reset(); // 重置表單
+        },
+        function(error) {
+            console.error('郵件發送失敗:', error);
+            showErrorMessage('❌ 發送失敗，請稍後再試或直接聯絡我們。');
+        }
+    ).finally(
+        function() {
+            // 恢復按鈕狀態
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    );
 }
 
 // 顯示成功訊息
@@ -890,16 +931,42 @@ function showSuccessMessage(message) {
         background: #27ae60;
         color: white;
         padding: 15px 25px;
-        border-radius: 5px;
+        border-radius: 8px;
         z-index: 2000;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        font-weight: 500;
+        max-width: 350px;
     `;
     successDiv.textContent = message;
     document.body.appendChild(successDiv);
     
     setTimeout(() => {
         successDiv.remove();
-    }, 3000);
+    }, 5000);
+}
+
+// 顯示錯誤訊息
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #e74c3c;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        z-index: 2000;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        font-weight: 500;
+        max-width: 350px;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 5000);
 }
 
 // 初始化滾動動畫
