@@ -1,35 +1,36 @@
-// utils.js - Utility functions for InvestSim
+// ============================================================
+// utils.js – Formatting, math helpers, Black-Scholes, fees
+// ============================================================
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
-
+/* ── Formatting ─────────────────────────────────────────── */
 function fmtTWD(n) {
-  if (n === null || n === undefined || isNaN(n)) return 'NT$--';
-  return 'NT$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  if (n == null || isNaN(n)) return 'NT$--';
+  return 'NT$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function fmtUSD(n) {
-  if (n === null || n === undefined || isNaN(n)) return '$--';
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (n == null || isNaN(n)) return '$--';
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtNum(n, dec = 2) {
-  if (n === null || n === undefined || isNaN(n)) return '--';
-  return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+function fmtNum(n, dec) {
+  if (dec === undefined) dec = 2;
+  if (n == null || isNaN(n)) return '--';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
 function fmtPct(n) {
-  if (n === null || n === undefined || isNaN(n)) return '--%';
+  if (n == null || isNaN(n)) return '--%';
   const sign = n >= 0 ? '+' : '';
-  return sign + n.toFixed(2) + '%';
+  return sign + fmtNum(n, 2) + '%';
 }
 
 function colorClass(n) {
-  if (n === null || n === undefined || isNaN(n)) return '';
+  if (n == null || isNaN(n)) return '';
   return n >= 0 ? 'gain' : 'loss';
 }
 
-// ─── Date Utilities ───────────────────────────────────────────────────────────
-
+/* ── Date helpers ───────────────────────────────────────── */
 function today() {
   return new Date().toISOString().split('T')[0];
 }
@@ -42,14 +43,16 @@ function monthsBetween(d1, d2) {
 
 function formatDate(iso) {
   if (!iso) return '--';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) {
+    return iso;
+  }
 }
 
-// ─── Math / Statistics ────────────────────────────────────────────────────────
-
+/* ── Math – erf / CDF / PDF ─────────────────────────────── */
 function erf(x) {
-  // Abramowitz and Stegun approximation
   const t = 1.0 / (1.0 + 0.3275911 * Math.abs(x));
   const poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
   const result = 1.0 - poly * Math.exp(-x * x);
@@ -64,23 +67,11 @@ function normalPDF(x) {
   return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
 }
 
-// ─── Black-Scholes ────────────────────────────────────────────────────────────
-
-/**
- * Black-Scholes option pricing model
- * @param {number} S - Current stock price
- * @param {number} K - Strike price
- * @param {number} T - Time to expiration in years
- * @param {number} r - Risk-free interest rate (decimal)
- * @param {number} sigma - Volatility (decimal)
- * @param {string} type - 'call' or 'put'
- * @returns {number} Option price
- */
+/* ── Black-Scholes ──────────────────────────────────────── */
+// S=spot, K=strike, T=time to expiry (years), r=risk-free rate, sigma=IV, type='call'|'put'
 function blackScholesPrice(S, K, T, r, sigma, type) {
   if (T <= 0) {
-    // At expiration
-    if (type === 'call') return Math.max(0, S - K);
-    return Math.max(0, K - S);
+    return type === 'call' ? Math.max(0, S - K) : Math.max(0, K - S);
   }
   const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
   const d2 = d1 - sigma * Math.sqrt(T);
@@ -91,127 +82,88 @@ function blackScholesPrice(S, K, T, r, sigma, type) {
   }
 }
 
-/**
- * Calculate option Greeks using Black-Scholes
- * @returns {{ delta, gamma, theta, vega }}
- */
 function optionGreeks(S, K, T, r, sigma, type) {
   if (T <= 0) {
-    const intrinsic = type === 'call' ? S - K : K - S;
-    return {
-      delta: intrinsic > 0 ? (type === 'call' ? 1 : -1) : 0,
-      gamma: 0,
-      theta: 0,
-      vega: 0
-    };
+    const delta = type === 'call' ? (S > K ? 1 : 0) : (S < K ? -1 : 0);
+    return { delta, gamma: 0, theta: 0, vega: 0 };
   }
   const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
   const d2 = d1 - sigma * Math.sqrt(T);
+  const pdf1 = normalPDF(d1);
   const sqrtT = Math.sqrt(T);
 
   const delta = type === 'call' ? normalCDF(d1) : normalCDF(d1) - 1;
-  const gamma = normalPDF(d1) / (S * sigma * sqrtT);
-  // Theta per calendar day
-  const theta = (-(S * normalPDF(d1) * sigma) / (2 * sqrtT) -
-    r * K * Math.exp(-r * T) * (type === 'call' ? normalCDF(d2) : normalCDF(-d2))) / 365;
-  // Vega per 1% move in vol
-  const vega = S * normalPDF(d1) * sqrtT * 0.01;
+  const gamma = pdf1 / (S * sigma * sqrtT);
+
+  // Theta per calendar day (negative for long positions)
+  const thetaBase = -(S * pdf1 * sigma) / (2 * sqrtT);
+  const thetaDiscount = r * K * Math.exp(-r * T);
+  let theta;
+  if (type === 'call') {
+    theta = (thetaBase - thetaDiscount * normalCDF(d2)) / 365;
+  } else {
+    theta = (thetaBase + thetaDiscount * normalCDF(-d2)) / 365;
+  }
+
+  const vega = S * pdf1 * sqrtT / 100; // per 1% IV change
 
   return { delta, gamma, theta, vega };
 }
 
-// ─── Fee Calculators ──────────────────────────────────────────────────────────
-
-/**
- * Taiwan stock fee
- * @param {number} value - Trade value in NTD
- * @param {string} direction - 'buy' or 'sell'
- * @returns {number} Fee in NTD
- */
+/* ── Transaction Fee Calculators ───────────────────────── */
 function calcTWFee(value, direction) {
   const buyFee = Math.max(20, value * 0.001425);
   if (direction === 'buy') return buyFee;
-  return buyFee + value * 0.003; // sell adds securities transaction tax
+  return buyFee + value * 0.003; // includes securities transaction tax
 }
 
-/**
- * US stock fee (zero commission)
- */
 function calcUSFee() {
   return 0;
 }
 
-/**
- * Crypto trading fee
- * @param {number} value - Trade value
- * @returns {number} Fee (0.1%)
- */
 function calcCryptoFee(value) {
-  return value * 0.001;
+  return value * 0.001; // 0.1%
 }
 
-/**
- * Taiwan futures fee
- * @param {number} contracts - Number of contracts
- * @returns {number} Fee in NTD
- */
 function calcTWFuturesFee(contracts) {
-  return contracts * 100; // NT$100/contract per side
+  return contracts * 100 * 2; // NT$100/side × 2 sides (round-trip)
 }
 
-/**
- * US futures fee
- * @param {number} contracts
- * @param {number} fxRate - TWD per USD
- * @returns {number} Fee in NTD
- */
 function calcUSFuturesFee(contracts, fxRate) {
-  return contracts * 5 * fxRate; // $5/contract converted
+  const usdFee = contracts * 5 * 2;
+  return usdFee * (fxRate || 31.5);
 }
 
-/**
- * Options fee
- * @param {number} contracts
- * @param {string} market - 'TW' or 'US'
- * @param {number} fxRate - TWD per USD
- * @returns {number} Fee in NTD
- */
 function calcOptionsFee(contracts, market, fxRate) {
-  if (market === 'TW') return contracts * 50;
-  return contracts * 0.65 * fxRate;
+  if (market === 'TW') {
+    return contracts * 50;
+  } else {
+    return contracts * 0.65 * (fxRate || 31.5);
+  }
 }
 
-// ─── Toast Notifications ──────────────────────────────────────────────────────
-
-let _toastCount = 0;
-
-function showToast(msg, type = 'info') {
+/* ── Toast Notifications ────────────────────────────────── */
+function showToast(msg, type) {
+  if (!type) type = 'info';
   const container = document.getElementById('toast-container');
   if (!container) return;
 
-  _toastCount++;
-  const id = 'toast-' + _toastCount;
+  const icons = { success: '✓', error: '✗', warning: '⚠', info: 'ℹ' };
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.id = id;
-
-  const icon = { success: '✓', error: '✗', warning: '⚠', info: 'ℹ' }[type] || 'ℹ';
-  toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${msg}</span>`;
-
+  toast.className = 'toast toast-' + type;
+  toast.innerHTML = '<span class="toast-icon">' + (icons[type] || 'ℹ') + '</span>' +
+                    '<span class="toast-msg">' + msg + '</span>';
   container.appendChild(toast);
 
-  // Trigger animation
-  requestAnimationFrame(() => toast.classList.add('toast-show'));
+  requestAnimationFrame(function() { toast.classList.add('show'); });
 
-  // Auto-remove after 4s
-  setTimeout(() => {
-    toast.classList.remove('toast-show');
-    setTimeout(() => toast.remove(), 400);
-  }, 4000);
+  setTimeout(function() {
+    toast.classList.remove('show');
+    setTimeout(function() { toast.remove(); }, 400);
+  }, 3500);
 }
 
-// ─── ID Generator ─────────────────────────────────────────────────────────────
-
+/* ── Unique ID ──────────────────────────────────────────── */
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }

@@ -1,41 +1,32 @@
-// storage.js - localStorage persistence layer for InvestSim
+// ============================================================
+// storage.js – localStorage persistence layer
+// ============================================================
 
 const KEYS = {
-  PORTFOLIO: 'investsim_portfolio',
-  TRANSACTIONS: 'investsim_transactions',
-  SIM_ACCOUNT: 'investsim_sim_account',
-  SIM_TRADES: 'investsim_sim_trades',
-  SIM_HISTORY: 'investsim_sim_history',
-  PORT_HISTORY: 'investsim_port_history'
+  PORTFOLIO:     'investsim_portfolio',
+  TRANSACTIONS:  'investsim_transactions',
+  SIM_ACCOUNT:   'investsim_sim_account',
+  SIM_TRADES:    'investsim_sim_trades',
+  SIM_HISTORY:   'investsim_sim_history',
+  PORT_HISTORY:  'investsim_port_history'
 };
 
-// ─── Default States ───────────────────────────────────────────────────────────
-
-const DEFAULT_PORTFOLIO = {
-  holdings: [],
-  cashNTD: 0,
-  cashUSD: 0
+const DEFAULT_SIM = {
+  cashNTD: 100000,
+  totalDeposited: 100000,
+  startDate: today(),
+  lastIncomeDate: today(),
+  positions: []
 };
 
-function _defaultSimAccount() {
-  const now = new Date().toISOString();
-  return {
-    cashNTD: 100000,
-    totalDeposited: 100000,
-    startDate: now,
-    lastIncomeDate: now,
-    positions: []
-  };
-}
-
-// ─── Portfolio (Real Holdings) ────────────────────────────────────────────────
-
+/* ── Portfolio ──────────────────────────────────────────── */
 function getPortfolio() {
   try {
     const raw = localStorage.getItem(KEYS.PORTFOLIO);
-    return raw ? JSON.parse(raw) : { ...DEFAULT_PORTFOLIO };
-  } catch {
-    return { ...DEFAULT_PORTFOLIO };
+    if (!raw) return { holdings: [], cashNTD: 0, cashUSD: 0 };
+    return JSON.parse(raw);
+  } catch (e) {
+    return { holdings: [], cashNTD: 0, cashUSD: 0 };
   }
 }
 
@@ -43,37 +34,37 @@ function savePortfolio(p) {
   localStorage.setItem(KEYS.PORTFOLIO, JSON.stringify(p));
 }
 
-// ─── Portfolio Transactions ───────────────────────────────────────────────────
-
+/* ── Transactions ───────────────────────────────────────── */
 function getTransactions() {
   try {
     const raw = localStorage.getItem(KEYS.TRANSACTIONS);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
     return [];
   }
 }
 
 function addTransaction(tx) {
-  const txs = getTransactions();
-  txs.unshift(tx); // most recent first
+  const txns = getTransactions();
+  tx.id = tx.id || generateId();
+  tx.date = tx.date || today();
+  txns.unshift(tx);
   // Keep last 500
-  if (txs.length > 500) txs.splice(500);
-  localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(txs));
+  localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(txns.slice(0, 500)));
 }
 
 function clearTransactions() {
   localStorage.removeItem(KEYS.TRANSACTIONS);
 }
 
-// ─── Simulator Account ────────────────────────────────────────────────────────
-
+/* ── Simulator Account ──────────────────────────────────── */
 function getSimAccount() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_ACCOUNT);
-    return raw ? JSON.parse(raw) : _defaultSimAccount();
-  } catch {
-    return _defaultSimAccount();
+    if (!raw) return Object.assign({}, DEFAULT_SIM, { startDate: today(), lastIncomeDate: today() });
+    return JSON.parse(raw);
+  } catch (e) {
+    return Object.assign({}, DEFAULT_SIM, { startDate: today(), lastIncomeDate: today() });
   }
 }
 
@@ -82,72 +73,69 @@ function saveSimAccount(a) {
 }
 
 function resetSimAccount() {
-  localStorage.removeItem(KEYS.SIM_ACCOUNT);
+  const fresh = Object.assign({}, DEFAULT_SIM, { startDate: today(), lastIncomeDate: today() });
+  localStorage.setItem(KEYS.SIM_ACCOUNT, JSON.stringify(fresh));
   localStorage.removeItem(KEYS.SIM_TRADES);
   localStorage.removeItem(KEYS.SIM_HISTORY);
 }
 
-// ─── Simulator Trades (closed trade log) ─────────────────────────────────────
-
+/* ── Simulator Trades Log ───────────────────────────────── */
 function getSimTrades() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_TRADES);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
     return [];
   }
 }
 
 function addSimTrade(trade) {
   const trades = getSimTrades();
+  trade.id = trade.id || generateId();
+  trade.date = trade.date || today();
   trades.unshift(trade);
-  if (trades.length > 500) trades.splice(500);
-  localStorage.setItem(KEYS.SIM_TRADES, JSON.stringify(trades));
+  localStorage.setItem(KEYS.SIM_TRADES, JSON.stringify(trades.slice(0, 1000)));
 }
 
-// ─── Simulator Equity History ─────────────────────────────────────────────────
-
+/* ── Simulator Equity History ───────────────────────────── */
 function getSimHistory() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_HISTORY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
     return [];
   }
 }
 
 function addSimSnapshot(totalNTD) {
-  const history = getSimHistory();
-  const entry = { date: today(), value: totalNTD };
-  // Update today's entry if exists
-  if (history.length > 0 && history[history.length - 1].date === entry.date) {
-    history[history.length - 1].value = totalNTD;
+  const hist = getSimHistory();
+  const dt = today();
+  // Update today's snapshot or add new
+  if (hist.length > 0 && hist[hist.length - 1].date === dt) {
+    hist[hist.length - 1].value = totalNTD;
   } else {
-    history.push(entry);
-    if (history.length > 365) history.splice(0, history.length - 365);
+    hist.push({ date: dt, value: totalNTD });
   }
-  localStorage.setItem(KEYS.SIM_HISTORY, JSON.stringify(history));
+  localStorage.setItem(KEYS.SIM_HISTORY, JSON.stringify(hist.slice(-365)));
 }
 
-// ─── Portfolio Equity History ─────────────────────────────────────────────────
-
+/* ── Portfolio Equity History ───────────────────────────── */
 function getPortHistory() {
   try {
     const raw = localStorage.getItem(KEYS.PORT_HISTORY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
     return [];
   }
 }
 
 function addPortSnapshot(totalNTD) {
-  const history = getPortHistory();
-  const entry = { date: today(), value: totalNTD };
-  if (history.length > 0 && history[history.length - 1].date === entry.date) {
-    history[history.length - 1].value = totalNTD;
+  const hist = getPortHistory();
+  const dt = today();
+  if (hist.length > 0 && hist[hist.length - 1].date === dt) {
+    hist[hist.length - 1].value = totalNTD;
   } else {
-    history.push(entry);
-    if (history.length > 365) history.splice(0, history.length - 365);
+    hist.push({ date: dt, value: totalNTD });
   }
-  localStorage.setItem(KEYS.PORT_HISTORY, JSON.stringify(history));
+  localStorage.setItem(KEYS.PORT_HISTORY, JSON.stringify(hist.slice(-365)));
 }

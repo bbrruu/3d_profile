@@ -1,161 +1,139 @@
-// api.js - Data fetching layer for InvestSim
-
-// ─── Cache ────────────────────────────────────────────────────────────────────
+// ============================================================
+// api.js – Data fetching layer (Yahoo Finance + CoinGecko)
+// ============================================================
 
 const _priceCache = {};
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 60000; // 60 seconds
 
-function _cacheGet(key) {
-  const entry = _priceCache[key];
-  if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) {
-    delete _priceCache[key];
-    return null;
-  }
-  return entry.data;
-}
-
-function _cacheSet(key, data) {
-  _priceCache[key] = { ts: Date.now(), data };
-}
-
-// ─── CORS Proxy Fetch ─────────────────────────────────────────────────────────
-
+/* ── CORS Proxy helper ──────────────────────────────────── */
 async function _fetchWithProxy(url) {
-  const proxies = [
-    'https://corsproxy.io/?' + encodeURIComponent(url),
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
-  ];
+  const proxy1 = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  const proxy2 = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
 
-  for (const proxyUrl of proxies) {
-    try {
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
+  try {
+    const res = await fetch(proxy1, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
       const text = await res.text();
-      if (!text || text.trim() === '') continue;
       return JSON.parse(text);
-    } catch (e) {
-      // try next proxy
     }
+    throw new Error('proxy1 failed: ' + res.status);
+  } catch (e) {
+    // Fallback to allorigins
+    const res2 = await fetch(proxy2, { signal: AbortSignal.timeout(8000) });
+    if (!res2.ok) throw new Error('Both proxies failed');
+    const text2 = await res2.text();
+    return JSON.parse(text2);
   }
-  throw new Error('All proxies failed for: ' + url);
 }
 
-// ─── Yahoo Finance Quote ──────────────────────────────────────────────────────
-
+/* ── fetchQuote ─────────────────────────────────────────── */
 async function fetchQuote(symbol) {
-  const cached = _cacheGet('quote:' + symbol);
-  if (cached) return cached;
+  const cacheKey = 'quote_' + symbol;
+  const cached = _priceCache[cacheKey];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?interval=1d&range=1d';
 
   try {
     const data = await _fetchWithProxy(url);
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta) throw new Error('No meta in response');
+    const result = data.chart && data.chart.result && data.chart.result[0];
+    if (!result) throw new Error('No result for ' + symbol);
 
-    const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
-    const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
-    const change = price !== null && prevClose !== null ? price - prevClose : null;
-    const changePct = prevClose && prevClose !== 0 ? (change / prevClose) * 100 : null;
+    const meta = result.meta;
+    const price = meta.regularMarketPrice || meta.previousClose;
+    const prevClose = meta.previousClose || meta.chartPreviousClose;
+    const change = price - prevClose;
+    const changePct = prevClose ? (change / prevClose) * 100 : 0;
 
-    const result = {
+    const quote = {
       symbol,
       name: meta.longName || meta.shortName || symbol,
       price,
       change,
       changePct,
       currency: meta.currency || 'USD',
-      previousClose: prevClose
+      previousClose: prevClose,
+      timestamp: Date.now()
     };
 
-    _cacheSet('quote:' + symbol, result);
-    return result;
+    _priceCache[cacheKey] = { ts: Date.now(), data: quote };
+    return quote;
   } catch (e) {
-    console.warn(`fetchQuote(${symbol}) failed:`, e.message);
-    return { symbol, name: symbol, price: null, change: null, changePct: null, currency: 'USD', previousClose: null };
+    console.warn('fetchQuote error for', symbol, e.message);
+    // Return cached stale data if available
+    if (cached) return cached.data;
+    throw e;
   }
 }
 
+/* ── fetchMultipleQuotes ────────────────────────────────── */
 async function fetchMultipleQuotes(symbols) {
-  const results = await Promise.allSettled(symbols.map(s => fetchQuote(s)));
-  return results.map((r, i) => r.status === 'fulfilled' ? r.value : {
-    symbol: symbols[i], name: symbols[i], price: null, change: null, changePct: null, currency: 'USD', previousClose: null
+  const results = {};
+  const promises = symbols.map(async function(sym) {
+    try {
+      results[sym] = await fetchQuote(sym);
+    } catch (e) {
+      results[sym] = null;
+    }
   });
+  await Promise.all(promises);
+  return results;
 }
 
-// ─── FX Rate ──────────────────────────────────────────────────────────────────
-
+/* ── fetchFXRate ────────────────────────────────────────── */
 async function fetchFXRate() {
-  const cached = _cacheGet('fx:TWDUSD');
-  if (cached) return cached;
-
   try {
-    const q = await fetchQuote('TWDUSD=X');
-    if (q.price) {
-      // TWDUSD=X gives TWD per USD (how many TWD to buy 1 USD)
-      const twdPerUsd = q.price;
-      const result = { twdPerUsd, usdPerTwd: 1 / twdPerUsd };
-      _cacheSet('fx:TWDUSD', result);
-      return result;
+    const q = await fetchQuote('TWD=X');
+    // TWD=X is USD per TWD, so invert
+    if (q && q.price) {
+      const twdPerUsd = 1 / q.price;
+      return { twdPerUsd, usdPerTwd: q.price };
     }
   } catch (e) {
-    console.warn('fetchFXRate failed, using fallback', e.message);
+    // ignore, try TWDUSD
   }
 
-  // Fallback
+  try {
+    const q2 = await fetchQuote('TWDUSD=X');
+    if (q2 && q2.price) {
+      return { twdPerUsd: 1 / q2.price, usdPerTwd: q2.price };
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Try direct approach
+  try {
+    const q3 = await fetchQuote('USDTWD=X');
+    if (q3 && q3.price) {
+      return { twdPerUsd: q3.price, usdPerTwd: 1 / q3.price };
+    }
+  } catch (e) {
+    // ignore
+  }
+
   return { twdPerUsd: 31.5, usdPerTwd: 1 / 31.5 };
 }
 
-// ─── CoinGecko ────────────────────────────────────────────────────────────────
-
-const COIN_ID_MAP = {
-  'BTC': 'bitcoin',
-  'ETH': 'ethereum',
-  'SOL': 'solana',
-  'BNB': 'binancecoin',
-  'XRP': 'ripple',
-  'ADA': 'cardano',
-  'DOGE': 'dogecoin',
-  'DOT': 'polkadot',
-  'AVAX': 'avalanche-2',
-  'LINK': 'chainlink',
-  'MATIC': 'matic-network',
-  'UNI': 'uniswap',
-  'ATOM': 'cosmos',
-  'LTC': 'litecoin',
-  'BCH': 'bitcoin-cash',
-  'NEAR': 'near',
-  'ALGO': 'algorand',
-  'ICP': 'internet-computer',
-  'FTM': 'fantom',
-  'SAND': 'the-sandbox',
-  'MANA': 'decentraland',
-  'AXS': 'axie-infinity',
-  'SHIB': 'shiba-inu',
-  'TRX': 'tron',
-  'XLM': 'stellar',
-  'ETC': 'ethereum-classic',
-  'HBAR': 'hedera-hashgraph',
-  'APT': 'aptos',
-  'ARB': 'arbitrum',
-  'OP': 'optimism'
-};
-
+/* ── CoinGecko ──────────────────────────────────────────── */
 async function fetchCryptoPrices(coinIds) {
-  const cacheKey = 'crypto:' + coinIds.join(',');
-  const cached = _cacheGet(cacheKey);
-  if (cached) return cached;
+  if (!coinIds || coinIds.length === 0) return {};
+  const ids = coinIds.join(',');
+  const cacheKey = 'crypto_' + ids;
+  const cached = _priceCache[cacheKey];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+
+  const url = 'https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=usd,twd&include_24hr_change=true';
 
   try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinIds.join(',')}&vs_currencies=usd,twd&include_24hr_change=true`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error('CoinGecko status: ' + res.status);
+    if (!res.ok) throw new Error('CoinGecko error ' + res.status);
     const data = await res.json();
-    _cacheSet(cacheKey, data);
+    _priceCache[cacheKey] = { ts: Date.now(), data };
     return data;
   } catch (e) {
-    console.warn('fetchCryptoPrices failed:', e.message);
+    console.warn('fetchCryptoPrices error:', e.message);
+    if (cached) return cached.data;
     return {};
   }
 }
@@ -163,30 +141,55 @@ async function fetchCryptoPrices(coinIds) {
 async function fetchCryptoPrice(coinId) {
   const data = await fetchCryptoPrices([coinId]);
   const entry = data[coinId];
-  if (!entry) return { coinId, priceUsd: null, priceTwd: null, change24h: null };
+  if (!entry) return null;
   return {
-    coinId,
-    priceUsd: entry.usd ?? null,
-    priceTwd: entry.twd ?? null,
-    change24h: entry.usd_24h_change ?? null
+    symbol: coinId.toUpperCase(),
+    name: coinId,
+    price: entry.usd,
+    priceTWD: entry.twd,
+    change: null,
+    changePct: entry.usd_24h_change || 0,
+    currency: 'USD'
   };
 }
 
-// ─── Market Indices ───────────────────────────────────────────────────────────
-
+/* ── Market Indices ─────────────────────────────────────── */
 const MARKET_INDICES = [
-  { symbol: '^TWII',  label: 'TAIEX',      category: 'equity' },
-  { symbol: '^GSPC',  label: 'S&P 500',    category: 'equity' },
-  { symbol: '^IXIC',  label: 'NASDAQ',     category: 'equity' },
-  { symbol: '^DJI',   label: 'Dow Jones',  category: 'equity' },
-  { symbol: '^HSI',   label: 'Hang Seng',  category: 'equity' },
-  { symbol: '^N225',  label: 'Nikkei 225', category: 'equity' },
-  { symbol: 'GC=F',   label: 'Gold',       category: 'commodity' },
-  { symbol: 'CL=F',   label: 'WTI Oil',    category: 'commodity' },
-  { symbol: 'SI=F',   label: 'Silver',     category: 'commodity' },
-  { symbol: 'BTC-USD',label: 'Bitcoin',    category: 'crypto' },
-  { symbol: 'ETH-USD',label: 'Ethereum',   category: 'crypto' },
-  { symbol: 'TWDUSD=X', label: 'TWD/USD',  category: 'fx' },
-  { symbol: 'EURUSD=X', label: 'EUR/USD',  category: 'fx' },
-  { symbol: 'JPYUSD=X', label: 'JPY/USD',  category: 'fx' }
+  { symbol: '^TWII',  label: 'TAIEX',         flag: '🇹🇼' },
+  { symbol: '^GSPC',  label: 'S&P 500',        flag: '🇺🇸' },
+  { symbol: '^IXIC',  label: 'NASDAQ',         flag: '🇺🇸' },
+  { symbol: '^DJI',   label: 'Dow Jones',      flag: '🇺🇸' },
+  { symbol: 'BTC-USD',label: 'Bitcoin',        flag: '₿' },
+  { symbol: 'ETH-USD',label: 'Ethereum',       flag: 'Ξ' },
+  { symbol: 'GC=F',   label: 'Gold Futures',   flag: '🥇' },
+  { symbol: 'CL=F',   label: 'Crude Oil WTI',  flag: '🛢' }
 ];
+
+/* ── Coin ID Map ────────────────────────────────────────── */
+const COIN_ID_MAP = {
+  'BTC':  'bitcoin',
+  'ETH':  'ethereum',
+  'BNB':  'binancecoin',
+  'SOL':  'solana',
+  'ADA':  'cardano',
+  'XRP':  'ripple',
+  'DOGE': 'dogecoin',
+  'DOT':  'polkadot',
+  'AVAX': 'avalanche-2',
+  'MATIC':'matic-network',
+  'LINK': 'chainlink',
+  'UNI':  'uniswap',
+  'LTC':  'litecoin',
+  'ATOM': 'cosmos',
+  'NEAR': 'near',
+  'SHIB': 'shiba-inu',
+  'TRX':  'tron',
+  'BCH':  'bitcoin-cash',
+  'ALGO': 'algorand',
+  'XLM':  'stellar'
+};
+
+function getCoinId(symbol) {
+  const upper = symbol.toUpperCase();
+  return COIN_ID_MAP[upper] || symbol.toLowerCase();
+}
