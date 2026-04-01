@@ -30,18 +30,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* ── Tab Switching ──────────────────────────────────────── */
 function setupTabs() {
+  // Header tab buttons
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      const tab = btn.dataset.tab;
-      setActiveTab(tab);
+      setActiveTab(btn.dataset.tab);
     });
   });
+  // Bottom nav buttons (mobile)
+  document.querySelectorAll('.bnav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      setActiveTab(btn.dataset.tab);
+    });
+  });
+
+  // Handle ?tab= URL param on load (e.g. from PWA shortcuts)
+  const urlTab = new URLSearchParams(window.location.search).get('tab');
+  if (urlTab && ['portfolio','simulator','market'].includes(urlTab)) {
+    window.APP.activeTab = urlTab;
+  }
 }
 
 function setActiveTab(tab) {
   window.APP.activeTab = tab;
 
-  document.querySelectorAll('.tab-btn').forEach(function(b) {
+  // Sync both header and bottom nav buttons
+  document.querySelectorAll('.tab-btn, .bnav-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
 
