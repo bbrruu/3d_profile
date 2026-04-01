@@ -1,261 +1,689 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D模型設計師 - 專業3D建模服務</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/libs/fflate.min.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <!-- EmailJS -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InvestSim – Investment Dashboard</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="InvestSim" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-    <!-- 導航欄 -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <h2>3D Designer Peggy</h2>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#home">首頁</a></li>
-                <li><a href="#portfolio">作品集</a></li>
-                <li><a href="#services">服務項目</a></li>
-                <li><a href="#viewer">3D預覽器</a></li>
-                <li><a href="#contact">聯絡我們</a></li>
-            </ul>
-            <div class="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </nav>
 
-    <!-- 主頁面 -->
-    <section id="home" class="hero">
-        <div class="hero-content">
-            <h1>專業3D模型設計師</h1>
-            <p>提供高品質的3D建模、動畫和視覺化服務</p>
-            <div class="hero-buttons">
-                <a href="#portfolio" class="btn btn-primary">查看作品</a>
-                <a href="#viewer" class="btn btn-secondary">3D預覽器</a>
-            </div>
-        </div>
-        <div class="hero-3d">
-            <div id="hero-model-container"></div>
-        </div>
-    </section>
+<!-- ══════════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="logo">📈 <span>Invest</span>Sim</div>
 
-    <!-- 作品集 -->
-    <section id="portfolio" class="portfolio">
-        <div class="container">
-            <h2>作品集</h2>
-            <div class="portfolio-grid">
-                <div class="portfolio-item">
-                    <div class="portfolio-image">
-                        <img src="images/3d_sample.jpg" alt="建築視覺化">
-                    </div>
-                    <div class="portfolio-info">
-                        <h3>建築視覺化</h3>
-                        <p>現代住宅外觀與室內設計3D渲染</p>
-                        <button class="view-3d-btn" data-model="models/Minnan.fbx">🏢 快速預覽</button>
-                        <button class="showcase-btn" onclick="window.open('architecture-showcase.html', '_blank')" style="background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🏗️ 專業展示</button>
-                    </div>
-                </div>
-                <div class="portfolio-item">
-                    <div class="portfolio-image">
-                        <img src="images/3d_sample.jpg" alt="產品設計">
-                    </div>
-                    <div class="portfolio-info">
-                        <h3>產品設計</h3>
-                        <p>創新產品的3D建模與設計</p>
-                        <button class="view-3d-btn" data-model="models/3D_sample.fbx">🎯 快速預覽</button>
-                        <button class="showcase-btn" onclick="window.open('product-design-showcase.html', '_blank')" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🎨 專業展示</button>
-                    </div>
-                </div>
-                <div class="portfolio-item">
-                    <div class="portfolio-image">
-                        <img src="images/rabbit_part1_PIC.png" alt="角色建模">
-                    </div>
-                    <div class="portfolio-info">
-                        <h3>角色建模</h3>
-                        <p>遊戲與動畫角色3D建模 - 創意角色設計</p>
-                        <button class="view-3d-btn" data-model="models/3D_sample.fbx">🎯 快速預覽</button>
-                        <button class="showcase-btn" onclick="window.open('character-showcase.html', '_blank')" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 25px; cursor: pointer; font-weight: bold;">🎯 專業展示</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="portfolio">Portfolio</button>
+    <button class="tab-btn" data-tab="simulator">Simulator</button>
+    <button class="tab-btn" data-tab="market">Market</button>
+  </nav>
 
-    <!-- 服務項目 -->
-    <section id="services" class="services">
-        <div class="container">
-            <h2>服務項目</h2>
-            <div class="services-grid">
-                <div class="service-item">
-                    <div class="service-icon">🏗️</div>
-                    <h3>建築視覺化</h3>
-                    <p>建築外觀、室內設計、景觀規劃的3D視覺化</p>
-                </div>
-                <div class="service-item">
-                    <div class="service-icon">📱</div>
-                    <h3>產品建模</h3>
-                    <p>工業設計、電子產品、日用品的3D建模</p>
-                </div>
-                <div class="service-item">
-                    <div class="service-icon">🎮</div>
-                    <h3>遊戲資產</h3>
-                    <p>遊戲角色、道具、場景的3D建模與貼圖</p>
-                </div>
-                <div class="service-item">
-                    <div class="service-icon">🎬</div>
-                    <h3>動畫製作</h3>
-                    <p>3D動畫、產品展示動畫、廣告視覺效果</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  <div class="header-right">
+    <span class="fx-badge" id="fx-display">1 USD = NT$31.50</span>
+    <button class="btn btn-ghost btn-sm" id="refresh-btn" title="Refresh prices">⟳</button>
+  </div>
+</header>
 
-    <!-- 3D預覽器 -->
-    <section id="viewer" class="viewer">
-        <div class="container">
-            <h2>3D模型預覽器</h2>
-            <div class="viewer-container">
-                <div class="viewer-controls">
-                    <div class="upload-section">
-                        <h3>上傳3D模型</h3>
-                        <input type="file" id="model-upload" accept=".glb,.gltf,.obj,.fbx" />
-                        <label for="model-upload" class="upload-btn">選擇檔案</label>
-                        <p class="file-info">支援格式：GLB, GLTF, OBJ, FBX</p>
-                    </div>
-                    <div class="control-section">
-                        <h3>預設模型</h3>
-                        <div class="preset-models">
-                            <button class="preset-btn" data-model="models/3D_sample.fbx">產品模型 (FBX)</button>
-                            <button class="preset-btn" data-model="models/Minnan.fbx">建築模型 (FBX)</button>
-                        </div>
-                        <div class="viewer-options">
-                            <label>
-                                <input type="checkbox" id="wireframe"> 線框模式
-                            </label>
-                            <label>
-                                <input type="checkbox" id="auto-rotate" checked> 自動旋轉
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="viewer-3d">
-                    <div id="model-viewer"></div>
-                    <div class="viewer-info">
-                        <p>使用滑鼠拖拽旋轉視角，滾輪縮放</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- Income Notification Banner -->
+<div id="income-banner">
+  <span>💰</span>
+  <span id="income-banner-msg">Monthly income received!</span>
+  <button id="income-banner-close">Dismiss</button>
+</div>
 
-    <!-- 聯絡我們 -->
-    <section id="contact" class="contact">
-        <div class="container">
-            <h2>聯絡我們</h2>
-            <div class="contact-content">
-                <div class="contact-info">
-                    <h3>聯絡資訊</h3>
-                    <div class="contact-item">
-                        <strong>📧 Email:</strong>
-                        <span>mumu3dartist@gmail.com</span>
-                    </div>
-                    <div class="contact-item">
-                        <strong>📞 電話:</strong>
-                        <span>+886-2-1234-5678</span>
-                    </div>
-                    <div class="contact-item">
-                        <strong>📍 地址:</strong>
-                        <span>台北市信義區信義路五段7號</span>
-                    </div>
-                    <div class="contact-item">
-                        <strong>⏰ 營業時間:</strong>
-                        <span>週一至週五 9:00-18:00</span>
-                    </div>
-                </div>
-                <div class="contact-form">
-                    <h3>專案諮詢</h3>
-                    <form id="contact-form">
-                        <div class="form-group">
-                            <input type="text" id="name" name="name" placeholder="姓名" required>
-                        </div>
-                        <div class="form-group">
-                            <input type="email" id="email" name="email" placeholder="Email" required>
-                        </div>
-                        <div class="form-group">
-                            <select id="service" name="service" required>
-                                <option value="">選擇服務項目</option>
-                                <option value="architecture">建築視覺化</option>
-                                <option value="product">產品建模</option>
-                                <option value="game">遊戲資產</option>
-                                <option value="animation">動畫製作</option>
-                                <option value="other">其他</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <textarea id="message" name="message" placeholder="專案描述" rows="5" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">發送訊息</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- ══════════════════════════════════════════════════════════
+     TAB 1: PORTFOLIO
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-portfolio" class="tab-content active">
 
-    <!-- 頁尾 -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>3D Designer Studio</h3>
-                    <p>專業的3D建模與視覺化服務提供商</p>
-                </div>
-                <div class="footer-section">
-                    <h4>服務項目</h4>
-                    <ul>
-                        <li>建築視覺化</li>
-                        <li>產品建模</li>
-                        <li>遊戲資產</li>
-                        <li>動畫製作</li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>聯絡方式</h4>
-                    <ul>
-                        <li>mumu3dartist@gmail.com</li>
-                        <li>+886-2-1234-5678</li>
-                        <li>台北市信義區</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 3D Designer Studio. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+  <!-- Summary Cards -->
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-label">Total Net Worth</div>
+      <div class="card-value" id="port-networth">NT$--</div>
+      <div class="card-sub">Holdings + Cash</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Invested</div>
+      <div class="card-value" id="port-invested">NT$--</div>
+      <div class="card-sub">Cost basis</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Unrealized P&amp;L</div>
+      <div class="card-value" id="port-pnl">NT$--</div>
+      <div class="card-sub"><span id="port-pnlpct">--%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Positions</div>
+      <div class="card-value" id="port-positions">0</div>
+      <div class="card-sub">Open holdings</div>
+    </div>
+  </div>
 
-    <!-- 3D模型彈窗 -->
-    <div id="model-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modal-viewer"></div>
+  <!-- Charts Row -->
+  <div class="charts-row section">
+    <div class="chart-card">
+      <div class="chart-title">Equity Curve</div>
+      <div class="chart-wrap">
+        <canvas id="port-equity-canvas"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Allocation</div>
+      <div class="chart-wrap">
+        <canvas id="port-alloc-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Holdings Table -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Holdings</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="refreshPortfolioPrices()">↻ Refresh Prices</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddPositionModal()">+ Add Position</button>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol / Name</th>
+              <th>Type</th>
+              <th>Shares</th>
+              <th>Current Price</th>
+              <th>Day Chg</th>
+              <th>Market Value</th>
+              <th>P&amp;L</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="holdings-tbody">
+            <tr><td colspan="8" class="empty-row">No positions. Click "Add Position" to start tracking.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Transaction History</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Symbol</th>
+              <th>Direction</th>
+              <th>Shares</th>
+              <th>Price (NT$)</th>
+              <th>Total (NT$)</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-tbody">
+            <tr><td colspan="6" class="empty-row">No transactions yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-portfolio -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 2: SIMULATOR
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-simulator" class="tab-content">
+
+  <!-- Summary Cards -->
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-label">Total Equity</div>
+      <div class="card-value" id="sim-equity">NT$--</div>
+      <div class="card-sub">Cash + positions</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cash Balance</div>
+      <div class="card-value" id="sim-cash">NT$--</div>
+      <div class="card-sub">Available to trade</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total P&amp;L</div>
+      <div class="card-value" id="sim-pnl">NT$--</div>
+      <div class="card-sub"><span id="sim-pnlpct">--%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Open Positions</div>
+      <div class="card-value" id="sim-positions">0</div>
+      <div class="card-sub">Total Deposited: <span id="sim-deposited">NT$100,000</span></div>
+    </div>
+  </div>
+
+  <!-- Simulator Actions -->
+  <div class="section">
+    <div class="sim-actions">
+      <button class="btn btn-secondary btn-sm" onclick="simulateNextMonth()">⏭ Simulate Next Month (+NT$25,000)</button>
+      <button class="btn btn-warning btn-sm" onclick="resetSimulator()">⚠ Reset Simulator</button>
+    </div>
+  </div>
+
+  <!-- Trade Panel + Equity Chart Row -->
+  <div class="sim-trade-row">
+
+    <!-- Trade Panel -->
+    <div class="trade-panel-card">
+      <div class="trade-panel-title">Execute Trade</div>
+
+      <!-- Asset Type Tabs -->
+      <div class="asset-type-tabs">
+        <button class="asset-type-btn active" data-type="stocks" onclick="handleAssetTypeSwitch('stocks')">Stocks/ETFs</button>
+        <button class="asset-type-btn" data-type="crypto" onclick="handleAssetTypeSwitch('crypto')">Crypto</button>
+        <button class="asset-type-btn" data-type="options" onclick="handleAssetTypeSwitch('options')">Options</button>
+        <button class="asset-type-btn" data-type="futures" onclick="handleAssetTypeSwitch('futures')">Futures</button>
+      </div>
+
+      <!-- ── Stocks/ETFs Panel ── -->
+      <div class="trade-panel" data-panel="stocks" style="display:block;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Symbol</label>
+            <input type="text" id="sim-stock-symbol" class="form-control" placeholder="e.g. AAPL or 2330.TW"
+              oninput="this.value=this.value.toUpperCase()" />
+          </div>
+          <div class="form-group">
+            <label>Direction</label>
+            <select id="sim-stock-dir" class="form-control">
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
         </div>
+        <div class="form-group">
+          <button class="btn btn-secondary btn-sm w-full" onclick="fetchStockPriceForTrade()">🔍 Fetch Live Price</button>
+        </div>
+        <div class="price-display" id="sim-stock-price-display">--</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Qty / Shares</label>
+            <input type="number" id="sim-stock-qty" class="form-control" placeholder="e.g. 100" min="1"
+              onchange="calculateStockFeePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Price (auto-filled)</label>
+            <input type="number" id="sim-stock-price" class="form-control" placeholder="Price"
+              step="0.01" onchange="calculateStockFeePreview()" />
+          </div>
+        </div>
+        <div class="fee-preview" id="sim-stock-fee-preview">Fee: --</div>
+        <button class="btn btn-primary w-full" onclick="executeStockTrade()">Execute Trade</button>
+      </div>
+
+      <!-- ── Crypto Panel ── -->
+      <div class="trade-panel" data-panel="crypto">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Symbol</label>
+            <input type="text" id="sim-crypto-symbol" class="form-control" placeholder="e.g. BTC"
+              oninput="this.value=this.value.toUpperCase()" />
+          </div>
+          <div class="form-group">
+            <label>Direction</label>
+            <select id="sim-crypto-dir" class="form-control">
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-secondary btn-sm w-full" onclick="fetchCryptoPriceForTrade()">🔍 Fetch Price (CoinGecko)</button>
+        </div>
+        <div class="price-display" id="sim-crypto-price-display">--</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount (coins)</label>
+            <input type="number" id="sim-crypto-qty" class="form-control" placeholder="e.g. 0.5" step="0.000001" min="0.000001" />
+          </div>
+          <div class="form-group">
+            <label>Price USD (auto)</label>
+            <input type="number" id="sim-crypto-price" class="form-control" placeholder="USD price" step="0.01" />
+          </div>
+        </div>
+        <div class="fee-preview" id="sim-crypto-fee-preview">Fee: 0.1% maker/taker</div>
+        <button class="btn btn-primary w-full" onclick="executeCryptoTrade()">Execute Trade</button>
+      </div>
+
+      <!-- ── Options Panel ── -->
+      <div class="trade-panel" data-panel="options">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Market</label>
+            <select id="opt-market" class="form-control" onchange="calculateOptionPrice()">
+              <option value="US">US (size×100)</option>
+              <option value="TW">TW TAIFEX (size×50)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="opt-type" class="form-control" onchange="calculateOptionPrice()">
+              <option value="call">Call</option>
+              <option value="put">Put</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Spot Price (S)</label>
+            <input type="number" id="opt-spot" class="form-control" placeholder="e.g. 5500" step="0.01" onchange="calculateOptionPrice()" />
+          </div>
+          <div class="form-group">
+            <label>Strike Price (K)</label>
+            <input type="number" id="opt-strike" class="form-control" placeholder="e.g. 5600" step="0.01" onchange="calculateOptionPrice()" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Days to Expiry</label>
+            <input type="number" id="opt-expiry" class="form-control" placeholder="e.g. 30" min="1" onchange="calculateOptionPrice()" />
+          </div>
+          <div class="form-group">
+            <label>Implied Vol (e.g. 0.20)</label>
+            <input type="number" id="opt-iv" class="form-control" placeholder="0.20" value="0.20" step="0.01" onchange="calculateOptionPrice()" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Risk-Free Rate</label>
+            <input type="number" id="opt-rate" class="form-control" value="0.045" step="0.001" onchange="calculateOptionPrice()" />
+          </div>
+          <div class="form-group">
+            <label>Contracts</label>
+            <input type="number" id="opt-contracts" class="form-control" value="1" min="1" onchange="calculateOptionPrice()" />
+          </div>
+        </div>
+
+        <!-- Greeks Grid -->
+        <div class="greeks-grid">
+          <div class="greek-item">
+            <div class="greek-label">Delta</div>
+            <div class="greek-value" id="greek-delta">--</div>
+          </div>
+          <div class="greek-item">
+            <div class="greek-label">Gamma</div>
+            <div class="greek-value" id="greek-gamma">--</div>
+          </div>
+          <div class="greek-item">
+            <div class="greek-label">Theta/day</div>
+            <div class="greek-value" id="greek-theta">--</div>
+          </div>
+          <div class="greek-item">
+            <div class="greek-label">Vega/1%IV</div>
+            <div class="greek-value" id="greek-vega">--</div>
+          </div>
+        </div>
+
+        <div class="opt-price-box">
+          Option Premium: <strong id="opt-price-display">--</strong>
+          &nbsp;|&nbsp; Total Cost: <strong id="opt-total-display">--</strong>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Direction</label>
+            <select id="opt-dir" class="form-control">
+              <option value="buy">Buy (Long)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary w-full" onclick="executeOptionTrade()">Execute Option Trade</button>
+      </div>
+
+      <!-- ── Futures Panel ── -->
+      <div class="trade-panel" data-panel="futures">
+        <div class="form-group">
+          <label>Symbol</label>
+          <select id="fut-symbol" class="form-control">
+            <option value="TX">TX – TAIEX Futures (NT$200/pt)</option>
+            <option value="ES">ES – S&amp;P 500 E-mini ($50/pt)</option>
+            <option value="NQ">NQ – NASDAQ E-mini ($20/pt)</option>
+            <option value="CL">CL – Crude Oil WTI ($1000/pt)</option>
+            <option value="GC">GC – Gold Futures ($100/pt)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-secondary btn-sm w-full" onclick="fetchFuturesPrice()">🔍 Fetch Live Price</button>
+        </div>
+        <div class="price-display" id="fut-price-display">--</div>
+        <div class="futures-info" id="fut-margin-display">Contract Value: -- | Margin (10%): --</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contracts</label>
+            <input type="number" id="fut-contracts" class="form-control" value="1" min="1" />
+          </div>
+          <div class="form-group">
+            <label>Direction</label>
+            <select id="fut-dir" class="form-control">
+              <option value="buy">Long (Buy)</option>
+              <option value="sell">Short (Sell)</option>
+            </select>
+          </div>
+        </div>
+        <input type="hidden" id="fut-price" />
+        <div class="fee-preview">
+          TW Futures: NT$100/contract/side&nbsp;&nbsp;|&nbsp;&nbsp;US Futures: $5/contract/side
+        </div>
+        <button class="btn btn-primary w-full" onclick="executeFuturesTrade()">Execute Futures Trade</button>
+      </div>
+
+    </div><!-- /trade-panel-card -->
+
+    <!-- Equity Chart -->
+    <div class="chart-card">
+      <div class="chart-title">Simulator Equity Curve</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="sim-equity-canvas"></canvas>
+      </div>
     </div>
 
-    <script src="js/script.js"></script>
+  </div><!-- /sim-trade-row -->
+
+  <!-- Open Positions Table -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Open Positions</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol / Type</th>
+              <th>Quantity</th>
+              <th>Entry Price</th>
+              <th>Current Price</th>
+              <th>Market Value</th>
+              <th>P&amp;L</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="sim-holdings-tbody">
+            <tr><td colspan="7" class="empty-row">No open positions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Log -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Trade Log</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Symbol</th>
+              <th>Asset Type</th>
+              <th>Direction</th>
+              <th>Quantity</th>
+              <th>Price (NT$)</th>
+              <th>Total (NT$)</th>
+            </tr>
+          </thead>
+          <tbody id="sim-log-tbody">
+            <tr><td colspan="7" class="empty-row">No trades yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-simulator -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 3: MARKET
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-market" class="tab-content">
+
+  <!-- Market Indices -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Market Indices</span>
+      <button class="btn btn-secondary btn-sm" onclick="renderMarketIndices()">↻ Refresh</button>
+    </div>
+    <div class="indices-grid" id="market-indices-grid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- FX Rates -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">FX Rates</span>
+    </div>
+    <div class="fx-grid" id="fx-rates-container">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- Symbol Search -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Symbol Search</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search-input" class="form-control" placeholder="Enter symbol (e.g. TSLA, 2330.TW, BTC-USD)"
+        oninput="this.value=this.value.toUpperCase()" />
+      <button class="btn btn-primary" id="search-btn">Search</button>
+    </div>
+    <div id="search-result"></div>
+  </div>
+
+  <!-- Reference Tags -->
+  <div class="ref-tags-section">
+    <div class="ref-tags-title">Quick Reference</div>
+
+    <div class="ref-tags-group">
+      <div class="ref-tags-group-label">🇹🇼 Taiwan Stocks / ETFs</div>
+      <div class="ref-tags">
+        <span class="ref-tag" data-symbol="2330.TW">2330.TW</span>
+        <span class="ref-tag" data-symbol="2317.TW">2317.TW</span>
+        <span class="ref-tag" data-symbol="2454.TW">2454.TW</span>
+        <span class="ref-tag" data-symbol="2412.TW">2412.TW</span>
+        <span class="ref-tag" data-symbol="0050.TW">0050.TW</span>
+        <span class="ref-tag" data-symbol="0056.TW">0056.TW</span>
+        <span class="ref-tag" data-symbol="00878.TW">00878.TW</span>
+        <span class="ref-tag" data-symbol="2308.TW">2308.TW</span>
+        <span class="ref-tag" data-symbol="2382.TW">2382.TW</span>
+        <span class="ref-tag" data-symbol="3711.TW">3711.TW</span>
+      </div>
+    </div>
+
+    <div class="ref-tags-group">
+      <div class="ref-tags-group-label">🇺🇸 US Stocks / ETFs</div>
+      <div class="ref-tags">
+        <span class="ref-tag" data-symbol="AAPL">AAPL</span>
+        <span class="ref-tag" data-symbol="MSFT">MSFT</span>
+        <span class="ref-tag" data-symbol="NVDA">NVDA</span>
+        <span class="ref-tag" data-symbol="GOOGL">GOOGL</span>
+        <span class="ref-tag" data-symbol="AMZN">AMZN</span>
+        <span class="ref-tag" data-symbol="TSLA">TSLA</span>
+        <span class="ref-tag" data-symbol="META">META</span>
+        <span class="ref-tag" data-symbol="SPY">SPY</span>
+        <span class="ref-tag" data-symbol="QQQ">QQQ</span>
+        <span class="ref-tag" data-symbol="VTI">VTI</span>
+        <span class="ref-tag" data-symbol="VOO">VOO</span>
+        <span class="ref-tag" data-symbol="SOXX">SOXX</span>
+      </div>
+    </div>
+
+    <div class="ref-tags-group">
+      <div class="ref-tags-group-label">₿ Crypto</div>
+      <div class="ref-tags">
+        <span class="ref-tag" data-symbol="BTC-USD">BTC-USD</span>
+        <span class="ref-tag" data-symbol="ETH-USD">ETH-USD</span>
+        <span class="ref-tag" data-symbol="SOL-USD">SOL-USD</span>
+        <span class="ref-tag" data-symbol="BNB-USD">BNB-USD</span>
+        <span class="ref-tag" data-symbol="XRP-USD">XRP-USD</span>
+      </div>
+    </div>
+
+    <div class="ref-tags-group">
+      <div class="ref-tags-group-label">📊 Indices &amp; Futures</div>
+      <div class="ref-tags">
+        <span class="ref-tag" data-symbol="^TWII">^TWII</span>
+        <span class="ref-tag" data-symbol="^GSPC">^GSPC</span>
+        <span class="ref-tag" data-symbol="^IXIC">^IXIC</span>
+        <span class="ref-tag" data-symbol="^DJI">^DJI</span>
+        <span class="ref-tag" data-symbol="ES=F">ES=F</span>
+        <span class="ref-tag" data-symbol="NQ=F">NQ=F</span>
+        <span class="ref-tag" data-symbol="GC=F">GC=F</span>
+        <span class="ref-tag" data-symbol="CL=F">CL=F</span>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /tab-market -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     ADD POSITION MODAL
+══════════════════════════════════════════════════════════════ -->
+<div id="add-position-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Add Position to Portfolio</span>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.83rem;color:var(--text-sub);margin-bottom:16px;">
+        Track a real investment. Enter your actual purchase details.
+      </p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Symbol *</label>
+          <input type="text" id="pos-symbol" class="form-control" placeholder="e.g. AAPL or 2330.TW"
+            oninput="this.value=this.value.toUpperCase()" />
+        </div>
+        <div class="form-group">
+          <label>Asset Type</label>
+          <select id="pos-type" class="form-control">
+            <option value="Stock">Stock</option>
+            <option value="ETF">ETF</option>
+            <option value="Crypto">Crypto</option>
+            <option value="Options">Options</option>
+            <option value="Futures">Futures</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Name / Description</label>
+        <input type="text" id="pos-name" class="form-control" placeholder="e.g. Apple Inc." />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Shares / Units *</label>
+          <input type="number" id="pos-shares" class="form-control" placeholder="e.g. 100" step="0.000001" min="0" />
+        </div>
+        <div class="form-group">
+          <label>Cost per Share *</label>
+          <input type="number" id="pos-cost" class="form-control" placeholder="e.g. 150.00" step="0.01" min="0" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Currency</label>
+          <select id="pos-currency" class="form-control">
+            <option value="TWD">TWD (NT$)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Purchase Date</label>
+          <input type="date" id="pos-date" class="form-control" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewPosition()">Save Position</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════════════ -->
+<!-- ── Bottom Navigation (mobile only) ─────────────────── -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bnav-btn active" data-tab="portfolio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <span>Portfolio</span>
+  </button>
+  <button class="bnav-btn" data-tab="simulator">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    <span>Simulator</span>
+  </button>
+  <button class="bnav-btn" data-tab="market">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    <span>Market</span>
+  </button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/portfolio.js"></script>
+<script src="js/simulator.js"></script>
+<script src="js/market.js"></script>
+<script src="js/app.js"></script>
+
+<!-- Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Registration failed:', err));
+  });
+}
+</script>
+
 </body>
 </html>
