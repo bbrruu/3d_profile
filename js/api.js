@@ -2,6 +2,8 @@
 // api.js – Data fetching layer (Yahoo Finance + CoinGecko)
 // ============================================================
 
+import { fmtNum, colorClass } from './utils.js'
+
 const _priceCache = {};
 const CACHE_TTL = 60000; // 60 seconds
 
@@ -27,7 +29,7 @@ async function _fetchWithProxy(url) {
 }
 
 /* ── fetchQuote ─────────────────────────────────────────── */
-async function fetchQuote(symbol) {
+export async function fetchQuote(symbol) {
   const cacheKey = 'quote_' + symbol;
   const cached = _priceCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
@@ -67,7 +69,7 @@ async function fetchQuote(symbol) {
 }
 
 /* ── fetchMultipleQuotes ────────────────────────────────── */
-async function fetchMultipleQuotes(symbols) {
+export async function fetchMultipleQuotes(symbols) {
   const results = {};
   const promises = symbols.map(async function(sym) {
     try {
@@ -81,7 +83,7 @@ async function fetchMultipleQuotes(symbols) {
 }
 
 /* ── fetchFXRate ────────────────────────────────────────── */
-async function fetchFXRate() {
+export async function fetchFXRate() {
   try {
     const q = await fetchQuote('TWD=X');
     // TWD=X is USD per TWD, so invert
@@ -116,7 +118,7 @@ async function fetchFXRate() {
 }
 
 /* ── CoinGecko ──────────────────────────────────────────── */
-async function fetchCryptoPrices(coinIds) {
+export async function fetchCryptoPrices(coinIds) {
   if (!coinIds || coinIds.length === 0) return {};
   const ids = coinIds.join(',');
   const cacheKey = 'crypto_' + ids;
@@ -138,7 +140,7 @@ async function fetchCryptoPrices(coinIds) {
   }
 }
 
-async function fetchCryptoPrice(coinId) {
+export async function fetchCryptoPrice(coinId) {
   const data = await fetchCryptoPrices([coinId]);
   const entry = data[coinId];
   if (!entry) return null;
@@ -154,7 +156,7 @@ async function fetchCryptoPrice(coinId) {
 }
 
 /* ── Market Indices ─────────────────────────────────────── */
-const MARKET_INDICES = [
+export const MARKET_INDICES = [
   { symbol: '^TWII',  label: 'TAIEX',         flag: '🇹🇼' },
   { symbol: '^GSPC',  label: 'S&P 500',        flag: '🇺🇸' },
   { symbol: '^IXIC',  label: 'NASDAQ',         flag: '🇺🇸' },
@@ -166,7 +168,7 @@ const MARKET_INDICES = [
 ];
 
 /* ── Coin ID Map ────────────────────────────────────────── */
-const COIN_ID_MAP = {
+export const COIN_ID_MAP = {
   'BTC':  'bitcoin',
   'ETH':  'ethereum',
   'BNB':  'binancecoin',
@@ -189,7 +191,7 @@ const COIN_ID_MAP = {
   'XLM':  'stellar'
 };
 
-function getCoinId(symbol) {
+export function getCoinId(symbol) {
   const upper = symbol.toUpperCase();
   return COIN_ID_MAP[upper] || symbol.toLowerCase();
 }

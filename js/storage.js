@@ -1,6 +1,7 @@
 // ============================================================
 // storage.js – localStorage persistence layer
 // ============================================================
+import { today, generateId } from './utils.js'
 
 const KEYS = {
   PORTFOLIO:     'investsim_portfolio',
@@ -20,7 +21,7 @@ const DEFAULT_SIM = {
 };
 
 /* ── Portfolio ──────────────────────────────────────────── */
-function getPortfolio() {
+export function getPortfolio() {
   try {
     const raw = localStorage.getItem(KEYS.PORTFOLIO);
     if (!raw) return { holdings: [], cashNTD: 0, cashUSD: 0 };
@@ -30,12 +31,12 @@ function getPortfolio() {
   }
 }
 
-function savePortfolio(p) {
+export function savePortfolio(p) {
   localStorage.setItem(KEYS.PORTFOLIO, JSON.stringify(p));
 }
 
 /* ── Transactions ───────────────────────────────────────── */
-function getTransactions() {
+export function getTransactions() {
   try {
     const raw = localStorage.getItem(KEYS.TRANSACTIONS);
     return raw ? JSON.parse(raw) : [];
@@ -44,7 +45,7 @@ function getTransactions() {
   }
 }
 
-function addTransaction(tx) {
+export function addTransaction(tx) {
   const txns = getTransactions();
   tx.id = tx.id || generateId();
   tx.date = tx.date || today();
@@ -53,12 +54,12 @@ function addTransaction(tx) {
   localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(txns.slice(0, 500)));
 }
 
-function clearTransactions() {
+export function clearTransactions() {
   localStorage.removeItem(KEYS.TRANSACTIONS);
 }
 
 /* ── Simulator Account ──────────────────────────────────── */
-function getSimAccount() {
+export function getSimAccount() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_ACCOUNT);
     if (!raw) return Object.assign({}, DEFAULT_SIM, { startDate: today(), lastIncomeDate: today() });
@@ -68,11 +69,11 @@ function getSimAccount() {
   }
 }
 
-function saveSimAccount(a) {
+export function saveSimAccount(a) {
   localStorage.setItem(KEYS.SIM_ACCOUNT, JSON.stringify(a));
 }
 
-function resetSimAccount() {
+export function resetSimAccount() {
   const fresh = Object.assign({}, DEFAULT_SIM, { startDate: today(), lastIncomeDate: today() });
   localStorage.setItem(KEYS.SIM_ACCOUNT, JSON.stringify(fresh));
   localStorage.removeItem(KEYS.SIM_TRADES);
@@ -80,7 +81,7 @@ function resetSimAccount() {
 }
 
 /* ── Simulator Trades Log ───────────────────────────────── */
-function getSimTrades() {
+export function getSimTrades() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_TRADES);
     return raw ? JSON.parse(raw) : [];
@@ -89,7 +90,7 @@ function getSimTrades() {
   }
 }
 
-function addSimTrade(trade) {
+export function addSimTrade(trade) {
   const trades = getSimTrades();
   trade.id = trade.id || generateId();
   trade.date = trade.date || today();
@@ -98,7 +99,7 @@ function addSimTrade(trade) {
 }
 
 /* ── Simulator Equity History ───────────────────────────── */
-function getSimHistory() {
+export function getSimHistory() {
   try {
     const raw = localStorage.getItem(KEYS.SIM_HISTORY);
     return raw ? JSON.parse(raw) : [];
@@ -107,7 +108,7 @@ function getSimHistory() {
   }
 }
 
-function addSimSnapshot(totalNTD) {
+export function addSimSnapshot(totalNTD) {
   const hist = getSimHistory();
   const dt = today();
   // Update today's snapshot or add new
@@ -120,7 +121,7 @@ function addSimSnapshot(totalNTD) {
 }
 
 /* ── Portfolio Equity History ───────────────────────────── */
-function getPortHistory() {
+export function getPortHistory() {
   try {
     const raw = localStorage.getItem(KEYS.PORT_HISTORY);
     return raw ? JSON.parse(raw) : [];
@@ -129,7 +130,7 @@ function getPortHistory() {
   }
 }
 
-function addPortSnapshot(totalNTD) {
+export function addPortSnapshot(totalNTD) {
   const hist = getPortHistory();
   const dt = today();
   if (hist.length > 0 && hist[hist.length - 1].date === dt) {
