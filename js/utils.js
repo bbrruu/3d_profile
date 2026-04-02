@@ -167,3 +167,22 @@ export function showToast(msg, type) {
 export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
+
+/* ── Market Open/Closed Status ──────────────────────────── */
+// Returns { tw: bool, us: bool } — true = currently trading
+export function getMarketStatus() {
+  const now = new Date();
+  const parts = tz => new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now).reduce((a, p) => (a[p.type] = p.value, a), {});
+
+  const tw       = parts('Asia/Taipei');
+  const ny       = parts('America/New_York');
+  const weekday  = p => p.weekday !== 'Sat' && p.weekday !== 'Sun';
+  const mins     = p => parseInt(p.hour) * 60 + parseInt(p.minute);
+
+  return {
+    tw: weekday(tw) && mins(tw) >= 570 && mins(tw) < 810,   // 09:30–13:30
+    us: weekday(ny) && mins(ny) >= 570 && mins(ny) < 960    // 09:30–16:00
+  };
+}

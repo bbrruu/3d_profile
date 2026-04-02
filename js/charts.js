@@ -2,7 +2,7 @@
 // charts.js – Chart.js rendering helpers (dark theme)
 // ============================================================
 import Chart from 'chart.js/auto'
-import { fmtNum } from './utils.js'
+import { fmtNum, fmtPct } from './utils.js'
 
 export function initChartDefaults() {
   Chart.defaults.color = '#8b949e'
@@ -138,6 +138,59 @@ export function renderAllocationChart(canvasId, segments) {
             }
           }
         }
+      }
+    }
+  })
+}
+
+/* ── Price History Chart ─────────────────────────────────── */
+// points: [{ time: Date, close: number }]
+export function renderPriceChart(canvasId, points) {
+  destroyChart(canvasId)
+  const canvas = document.getElementById(canvasId)
+  if (!canvas) return
+
+  if (!points || points.length === 0) {
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#8b949e'
+    ctx.font = '14px Inter, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('No data available', canvas.width / 2, canvas.height / 2)
+    return
+  }
+
+  const spanMs   = points[points.length - 1].time - points[0].time
+  const intraday = spanMs < 2 * 86400000
+  const labels   = points.map(p => intraday
+    ? p.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : p.time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+  const values = points.map(p => p.close)
+  const first  = values.find(v => v != null) ?? values[0]
+  const last   = values[values.length - 1]
+  const color  = last >= first ? '#3fb950' : '#f85149'
+
+  _chartInstances[canvasId] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data: values, borderColor: color, backgroundColor: color + '18',
+        fill: true, tension: 0.2, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#8b949e', bodyColor: '#e6edf3',
+          callbacks: { label: ctx => ' ' + fmtNum(ctx.parsed.y, 2) }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#30363d22' }, ticks: { color: '#8b949e', maxTicksLimit: 8, maxRotation: 0 } },
+        y: { position: 'right', grid: { color: '#30363d44' }, ticks: { color: '#8b949e', callback: v => fmtNum(v, 2) } }
       }
     }
   })
