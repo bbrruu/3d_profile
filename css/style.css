@@ -810,6 +810,190 @@ select.form-control { cursor: pointer; }
 .gap-2 { gap: 8px; }
 .w-full { width: 100%; }
 
+/* ── Market Status Bar ───────────────────────────────────── */
+.market-status-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.status-badge.open {
+  background: rgba(63, 185, 80, 0.15);
+  border: 1px solid var(--gain);
+  color: var(--gain);
+}
+
+.status-badge.closed {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid var(--loss);
+  color: var(--loss);
+}
+
+.status-badge.always-open {
+  background: rgba(79, 158, 237, 0.12);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+/* ── Index Card Enhancements ─────────────────────────────── */
+.index-card {
+  cursor: pointer;
+}
+
+.index-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.index-card-top .index-flag { margin-bottom: 0; font-size: 1.1rem; }
+.index-card-top .index-label { margin-bottom: 0; }
+
+.index-tf-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.tf-delta {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+.tf-delta.gain { color: var(--gain); }
+.tf-delta.loss { color: var(--loss); }
+
+/* ── Detail / Sim Chart Panel ────────────────────────────── */
+.market-detail-section {
+  border: 1px solid var(--accent);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.detail-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detail-symbol {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detail-name {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+/* ── Timeframe Button Row ─────────────────────────────────── */
+.tf-btn-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tf-btn {
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.tf-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tf-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Detail Price Stats ───────────────────────────────────── */
+.detail-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  min-height: 24px;
+}
+
+.detail-current-price {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detail-chg {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.detail-period-label {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+}
+
+/* ── TF Stats Bar ─────────────────────────────────────────── */
+.tf-stat-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.tf-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card2);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  min-width: 60px;
+}
+
+.tf-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.tf-stat-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.tf-stat-val.gain { color: var(--gain); }
+.tf-stat-val.loss { color: var(--loss); }
+
 /* ── Responsive: 900px ────────────────────────────────────── */
 @media (max-width: 900px) {
   .cards-grid    { grid-template-columns: repeat(2, 1fr); }
@@ -832,6 +1016,8 @@ select.form-control { cursor: pointer; }
   .cards-grid  { grid-template-columns: 1fr 1fr; gap: 10px; }
   .indices-grid{ grid-template-columns: 1fr 1fr; }
   .fx-grid     { grid-template-columns: repeat(2, 1fr); }
+  .tf-stat-bar { gap: 6px; }
+  .tf-stat-item { padding: 5px 8px; min-width: 52px; }
 
   .card { padding: 14px; }
   .card-value { font-size: 1.15rem; }

@@ -188,6 +188,28 @@
     </div>
   </div>
 
+  <!-- Sim Chart Panel (shown when user taps View Chart) -->
+  <div id="sim-chart-section" class="section market-detail-section" style="display:none;">
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <span class="detail-symbol" id="sim-chart-symbol"></span>
+        <span class="detail-name" id="sim-chart-name"></span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('sim-chart-section').style.display='none'">✕ Close</button>
+    </div>
+    <div class="tf-btn-row">
+      <button class="tf-btn active" data-tf="1D">1D</button>
+      <button class="tf-btn" data-tf="1W">1W</button>
+      <button class="tf-btn" data-tf="3M">3M</button>
+      <button class="tf-btn" data-tf="1Y">1Y</button>
+    </div>
+    <div id="sim-chart-stats" class="detail-stats"></div>
+    <div class="chart-wrap" style="height:240px; margin-bottom:12px;">
+      <canvas id="sim-price-chart"></canvas>
+    </div>
+    <div id="sim-chart-tf-stats" class="tf-stat-bar"></div>
+  </div>
+
   <!-- Trade Panel + Equity Chart Row -->
   <div class="sim-trade-row">
 
@@ -469,6 +491,9 @@
 ══════════════════════════════════════════════════════════════ -->
 <div id="tab-market" class="tab-content">
 
+  <!-- Market Status Badges -->
+  <div id="market-status-badges" class="market-status-bar"></div>
+
   <!-- Market Indices -->
   <div class="section">
     <div class="section-header">
@@ -478,6 +503,29 @@
     <div class="indices-grid" id="market-indices-grid">
       <!-- Populated by JS -->
     </div>
+  </div>
+
+  <!-- Detail Panel (hidden until a card is tapped) -->
+  <div id="market-detail-section" class="section market-detail-section" style="display:none;">
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <span class="detail-symbol" id="detail-symbol"></span>
+        <span class="detail-name" id="detail-name"></span>
+        <span id="detail-market-status"></span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('market-detail-section').style.display='none'">✕ Close</button>
+    </div>
+    <div class="tf-btn-row">
+      <button class="tf-btn active" data-tf="1D">1D</button>
+      <button class="tf-btn" data-tf="1W">1W</button>
+      <button class="tf-btn" data-tf="3M">3M</button>
+      <button class="tf-btn" data-tf="1Y">1Y</button>
+    </div>
+    <div id="detail-stats" class="detail-stats"></div>
+    <div class="chart-wrap" style="height:240px; margin-bottom:12px;">
+      <canvas id="detail-price-chart"></canvas>
+    </div>
+    <div id="detail-tf-stats" class="tf-stat-bar"></div>
   </div>
 
   <!-- FX Rates -->
@@ -664,26 +712,8 @@
   </button>
 </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/api.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/portfolio.js"></script>
-<script src="js/simulator.js"></script>
-<script src="js/market.js"></script>
-<script src="js/app.js"></script>
-
-<!-- Service Worker Registration -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[SW] Registered:', reg.scope))
-      .catch(err => console.warn('[SW] Registration failed:', err));
-  });
-}
-</script>
+<!-- Vite bundles everything from this single module entry -->
+<script type="module" src="/js/app.js"></script>
 
 </body>
 </html>

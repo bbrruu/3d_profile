@@ -2,6 +2,8 @@
 // api.js – Data fetching layer (Yahoo Finance + CoinGecko)
 // ============================================================
 
+import { fmtNum, colorClass } from './utils.js'
+
 const _priceCache = {};
 const CACHE_TTL = 60000; // 60 seconds
 
@@ -27,7 +29,7 @@ async function _fetchWithProxy(url) {
 }
 
 /* ── fetchQuote ─────────────────────────────────────────── */
-async function fetchQuote(symbol) {
+export async function fetchQuote(symbol) {
   const cacheKey = 'quote_' + symbol;
   const cached = _priceCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
@@ -67,7 +69,7 @@ async function fetchQuote(symbol) {
 }
 
 /* ── fetchMultipleQuotes ────────────────────────────────── */
-async function fetchMultipleQuotes(symbols) {
+export async function fetchMultipleQuotes(symbols) {
   const results = {};
   const promises = symbols.map(async function(sym) {
     try {
@@ -81,7 +83,7 @@ async function fetchMultipleQuotes(symbols) {
 }
 
 /* ── fetchFXRate ────────────────────────────────────────── */
-async function fetchFXRate() {
+export async function fetchFXRate() {
   try {
     const q = await fetchQuote('TWD=X');
     // TWD=X is USD per TWD, so invert
@@ -116,7 +118,7 @@ async function fetchFXRate() {
 }
 
 /* ── CoinGecko ──────────────────────────────────────────── */
-async function fetchCryptoPrices(coinIds) {
+export async function fetchCryptoPrices(coinIds) {
   if (!coinIds || coinIds.length === 0) return {};
   const ids = coinIds.join(',');
   const cacheKey = 'crypto_' + ids;
@@ -138,7 +140,7 @@ async function fetchCryptoPrices(coinIds) {
   }
 }
 
-async function fetchCryptoPrice(coinId) {
+export async function fetchCryptoPrice(coinId) {
   const data = await fetchCryptoPrices([coinId]);
   const entry = data[coinId];
   if (!entry) return null;
@@ -154,19 +156,45 @@ async function fetchCryptoPrice(coinId) {
 }
 
 /* ── Market Indices ─────────────────────────────────────── */
-const MARKET_INDICES = [
-  { symbol: '^TWII',  label: 'TAIEX',         flag: '🇹🇼' },
-  { symbol: '^GSPC',  label: 'S&P 500',        flag: '🇺🇸' },
-  { symbol: '^IXIC',  label: 'NASDAQ',         flag: '🇺🇸' },
-  { symbol: '^DJI',   label: 'Dow Jones',      flag: '🇺🇸' },
-  { symbol: 'BTC-USD',label: 'Bitcoin',        flag: '₿' },
-  { symbol: 'ETH-USD',label: 'Ethereum',       flag: 'Ξ' },
-  { symbol: 'GC=F',   label: 'Gold Futures',   flag: '🥇' },
-  { symbol: 'CL=F',   label: 'Crude Oil WTI',  flag: '🛢' }
-];
+export const MARKET_INDICES = [
+  { symbol: '^TWII',   label: 'TAIEX',        flag: '🇹🇼', market: 'TW'      },
+  { symbol: '^GSPC',   label: 'S&P 500',       flag: '🇺🇸', market: 'US'      },
+  { symbol: '^IXIC',   label: 'NASDAQ',        flag: '🇺🇸', market: 'US'      },
+  { symbol: '^DJI',    label: 'Dow Jones',     flag: '🇺🇸', market: 'US'      },
+  { symbol: 'BTC-USD', label: 'Bitcoin',       flag: '₿',  market: 'CRYPTO'  },
+  { symbol: 'ETH-USD', label: 'Ethereum',      flag: 'Ξ',  market: 'CRYPTO'  },
+  { symbol: 'GC=F',    label: 'Gold',          flag: '🥇', market: 'FUTURES' },
+  { symbol: 'CL=F',    label: 'Crude Oil WTI', flag: '🛢', market: 'FUTURES' }
+]
+
+/* ── fetchHistory ────────────────────────────────────────── */
+// interval: '5m'|'1d'|'1wk'   range: '1d'|'5d'|'3mo'|'1y'
+export async function fetchHistory(symbol, interval, range) {
+  const key = `hist_${symbol}_${interval}_${range}`
+  const cached = _priceCache[key]
+  const ttl = range === '1d' ? 5 * 60 * 1000 : 60 * 60 * 1000
+  if (cached && Date.now() - cached.ts < ttl) return cached.data
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`
+  try {
+    const data  = await _fetchWithProxy(url)
+    const result = data?.chart?.result?.[0]
+    if (!result) throw new Error('No history for ' + symbol)
+    const ts = result.timestamp || []
+    const q  = result.indicators?.quote?.[0] || {}
+    const points = ts
+      .map((t, i) => ({ time: new Date(t * 1000), open: q.open?.[i], high: q.high?.[i], low: q.low?.[i], close: q.close?.[i] }))
+      .filter(p => p.close != null)
+    _priceCache[key] = { ts: Date.now(), data: points }
+    return points
+  } catch (e) {
+    if (cached) return cached.data
+    throw e
+  }
+};
 
 /* ── Coin ID Map ────────────────────────────────────────── */
-const COIN_ID_MAP = {
+export const COIN_ID_MAP = {
   'BTC':  'bitcoin',
   'ETH':  'ethereum',
   'BNB':  'binancecoin',
@@ -189,7 +217,7 @@ const COIN_ID_MAP = {
   'XLM':  'stellar'
 };
 
-function getCoinId(symbol) {
+export function getCoinId(symbol) {
   const upper = symbol.toUpperCase();
   return COIN_ID_MAP[upper] || symbol.toLowerCase();
 }
